@@ -7,8 +7,8 @@ export const SHOP_SETTINGS = {
   currency: "$",
   deliveryFee: 0,
   freeDeliveryText: "ENVÍO GRATIS",
-  // Logo personalizado
-  logoUrl: "./mer.jfif" 
+  // Logo personalizado - Debe estar en la carpeta "public"
+  logoUrl: "/mer.jfif" 
 };
 
 export const PRODUCTS: Product[] = [
