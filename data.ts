@@ -3,12 +3,16 @@ import { Product } from './types';
 
 export const SHOP_SETTINGS = {
   name: "Bajoneras Burger",
-  whatsappNumber: "5491112345678", // Reemplazar con el número real
+  whatsappNumber: "5491154661480", // Reemplazar con el número real
   currency: "$",
   deliveryFee: 0,
   freeDeliveryText: "ENVÍO GRATIS",
   // Logo personalizado - Debe estar en la carpeta "public"
-  logoUrl: "/mer.jfif" 
+  logoUrl: "/mer.jfif",
+  // Horarios de atención
+  schedule: "Viernes, Sábado y Domingo de 20:00 a 00:00",
+  // Zona de delivery
+  deliveryZones: "Morón, Castelar, Haedo, Castillo"
 };
 
 export const PRODUCTS: Product[] = [

@@ -389,17 +389,19 @@ export default function App() {
         </div>
       </header>
 
+      {/* Botón hamburguesa fijo para móvil */}
+      <button
+        onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+        className="fixed top-4 left-4 z-50 sm:hidden p-3 bg-yellow-400 text-black rounded-xl font-black hover:bg-white transition-all shadow-lg"
+      >
+        <Menu size={24} />
+      </button>
+
       {/* Navegación Sticky */}
       <nav className="sticky top-0 z-40 bg-neutral-950/95 backdrop-blur-2xl border-b border-white/5 py-3 sm:py-5 shadow-[0_15px_40px_rgba(0,0,0,0.9)]">
         <div className="max-w-6xl mx-auto px-4">
-          {/* Botón hamburguesa para móvil */}
-          <div className="flex sm:hidden items-center justify-between">
-            <button
-              onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-              className="p-3 bg-yellow-400 text-black rounded-xl font-black hover:bg-white transition-all"
-            >
-              <Menu size={24} />
-            </button>
+          {/* Título para móvil */}
+          <div className="flex sm:hidden items-center justify-center">
             <span className="font-bebas text-2xl tracking-widest italic">MENÚ</span>
           </div>
 
@@ -660,14 +662,21 @@ export default function App() {
                                   </div>
                                 )}
                                 {/* Campo editable de notas */}
-                                <div className="mb-2">
-                                  <textarea
+                                <div className="mb-2 relative">
+                                  <div className="flex items-center gap-1.5 mb-1">
+                                    <MessageSquare size={12} className="text-neutral-500" />
+                                    <span className="text-[10px] font-bold text-neutral-500 uppercase tracking-wide">Observaciones</span>
+                                    {item.notes && (
+                                      <span className="text-[9px] text-neutral-600 ml-auto">{item.notes.length}/150</span>
+                                    )}
+                                  </div>
+                                  <input
+                                    type="text"
                                     value={item.notes || ''}
                                     onChange={(e) => updateCartItemNotes(item.cartItemId!, e.target.value)}
-                                    placeholder="📝 Agregar observaciones..."
-                                    rows={1}
+                                    placeholder="Ej: Sin cebolla, sin tomate, bien cocida..."
                                     maxLength={150}
-                                    className="w-full text-xs text-neutral-300 italic bg-neutral-900/50 px-2 py-1.5 rounded border border-white/5 focus:border-yellow-400/50 focus:outline-none transition-all resize-none placeholder:text-neutral-600"
+                                    className="w-full text-xs text-neutral-300 bg-neutral-900/80 px-3 py-2 rounded-lg border border-white/10 focus:border-yellow-400/70 focus:outline-none transition-all placeholder:text-neutral-600 hover:border-yellow-400/30"
                                   />
                                 </div>
                                 <div className="flex items-baseline gap-2">
@@ -1052,6 +1061,25 @@ export default function App() {
           <div className="w-56 h-56 sm:w-80 sm:h-80 mb-6 bg-white/5 rounded-full border border-white/10 shadow-2xl animate-float overflow-hidden">
             <img src={SHOP_SETTINGS.logoUrl} alt="Logo" className="w-full h-full object-cover filter drop-shadow-[0_0_30px_rgba(255,255,255,0.1)] block" />
           </div>
+          
+          {/* Información de horarios y zona */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 sm:gap-8 w-full max-w-3xl">
+            <div className="bg-neutral-900/50 p-6 sm:p-8 rounded-2xl border border-white/10">
+              <div className="text-yellow-400 mb-3">
+                <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mx-auto"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+              </div>
+              <h3 className="font-bebas text-xl sm:text-2xl tracking-widest text-white mb-2">HORARIOS</h3>
+              <p className="text-neutral-400 text-sm sm:text-base font-bold">{SHOP_SETTINGS.schedule}</p>
+            </div>
+            <div className="bg-neutral-900/50 p-6 sm:p-8 rounded-2xl border border-white/10">
+              <div className="text-yellow-400 mb-3">
+                <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mx-auto"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+              </div>
+              <h3 className="font-bebas text-xl sm:text-2xl tracking-widest text-white mb-2">ZONA DE DELIVERY</h3>
+              <p className="text-neutral-400 text-sm sm:text-base font-bold">{SHOP_SETTINGS.deliveryZones}</p>
+            </div>
+          </div>
+
           <div className="flex gap-10 sm:gap-16">
             <a href="#" className="p-6 sm:p-10 bg-neutral-900 rounded-[2rem] sm:rounded-[3rem] hover:bg-yellow-400 hover:text-black transition-all hover:-translate-y-4 shadow-2xl border border-white/5"><Instagram size={40} /></a>
             <a href={`https://wa.me/${SHOP_SETTINGS.whatsappNumber}`} className="p-6 sm:p-10 bg-neutral-900 rounded-[2rem] sm:rounded-[3rem] hover:bg-green-500 hover:text-black transition-all hover:-translate-y-4 shadow-2xl border border-white/5"><Phone size={40} /></a>
