@@ -19,9 +19,16 @@ export interface Product {
   extras?: Extra[];
 }
 
+export interface ComboburgerSelection {
+  burger: Product;
+  extras: Extra[];
+  notes: string;
+}
+
 export interface CartItem extends Product {
   quantity: number;
   selectedExtras?: Extra[];
   cartItemId?: string; // ID único para diferenciar productos con distintos extras
   notes?: string; // Observaciones del producto
+  comboBurgers?: ComboburgerSelection[]; // Hamburguesas seleccionadas en combos
 }

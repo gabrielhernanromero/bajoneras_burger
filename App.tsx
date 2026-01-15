@@ -2,7 +2,7 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { ShoppingCart, Send, Plus, Minus, X, Menu, Phone, Instagram, Check, User, MapPin, Truck, Store, CreditCard, Banknote, Receipt, MessageSquare } from 'lucide-react';
 import { PRODUCTS, SHOP_SETTINGS } from './data';
-import { Product, CartItem, Category, Extra } from './types';
+import { Product, CartItem, Category, Extra, ComboburgerSelection } from './types';
 
 // --- Helper Components ---
 
@@ -157,6 +157,198 @@ const CustomizationModal: React.FC<{
   );
 };
 
+// --- Modal de Personalización de Combos ---
+const ComboCustomizationModal: React.FC<{
+  combo: Product;
+  onClose: () => void;
+  onConfirm: (burgers: ComboburgerSelection[]) => void;
+}> = ({ combo, onClose, onConfirm }) => {
+  const burgersCount = combo.id === 'combo-duo-share' ? 2 : 1;
+  const availableBurgers = PRODUCTS.filter(p => p.category === 'Burgers');
+  
+  const [selectedBurgers, setSelectedBurgers] = useState<ComboburgerSelection[]>([]);
+  const [currentStep, setCurrentStep] = useState(0);
+  const [currentBurgerSelection, setCurrentBurgerSelection] = useState<Product | null>(null);
+  const [currentExtras, setCurrentExtras] = useState<Extra[]>([]);
+  const [currentNotes, setCurrentNotes] = useState('');
+
+  const toggleExtra = (extra: Extra) => {
+    setCurrentExtras(prev => {
+      const exists = prev.find(e => e.id === extra.id);
+      if (exists) {
+        return prev.filter(e => e.id !== extra.id);
+      } else {
+        return [...prev, extra];
+      }
+    });
+  };
+
+  const selectBurger = (burger: Product) => {
+    setCurrentBurgerSelection(burger);
+    setCurrentExtras([]);
+    setCurrentNotes('');
+  };
+
+  const confirmCurrentBurger = () => {
+    if (!currentBurgerSelection) return;
+    
+    const newSelection: ComboburgerSelection = {
+      burger: currentBurgerSelection,
+      extras: currentExtras,
+      notes: currentNotes
+    };
+    
+    setSelectedBurgers([...selectedBurgers, newSelection]);
+    
+    if (selectedBurgers.length + 1 < burgersCount) {
+      setCurrentStep(currentStep + 1);
+      setCurrentBurgerSelection(null);
+      setCurrentExtras([]);
+      setCurrentNotes('');
+    } else {
+      onConfirm([...selectedBurgers, newSelection]);
+    }
+  };
+
+  const totalExtrasPrice = currentExtras.reduce((sum, e) => sum + e.price, 0);
+
+  return (
+    <div className="fixed inset-0 z-[70] flex items-center justify-center p-4 overflow-y-auto">
+      <div className="absolute inset-0 bg-black/95 backdrop-blur-xl" onClick={onClose}></div>
+      <div className="relative w-full max-w-4xl bg-neutral-900 rounded-[2rem] sm:rounded-[3rem] shadow-2xl animate-fade-in-up overflow-hidden border-2 border-yellow-400/30 my-8">
+        {/* Header */}
+        <div className="p-6 sm:p-8 md:p-10 border-b border-white/10 bg-gradient-to-br from-black to-neutral-900">
+          <div className="flex items-start justify-between gap-4">
+            <div className="flex-1">
+              <h3 className="font-bebas text-3xl sm:text-4xl md:text-5xl tracking-widest italic text-yellow-400 leading-none mb-2">
+                PERSONALIZA TU COMBO
+              </h3>
+              <p className="text-neutral-400 text-sm sm:text-base font-bold uppercase tracking-wider">
+                {combo.name}
+              </p>
+              <p className="text-yellow-400 text-xs sm:text-sm font-bold mt-2">
+                Paso {currentStep + 1} de {burgersCount}: Elegí tu {burgersCount === 2 ? (currentStep === 0 ? 'primera' : 'segunda') : ''} hamburguesa
+              </p>
+            </div>
+            <button
+              onClick={onClose}
+              className="p-2 sm:p-3 bg-neutral-800 hover:bg-yellow-400 hover:text-black rounded-xl sm:rounded-2xl transition-all hover:rotate-90 flex-shrink-0"
+            >
+              <X size={20} className="sm:hidden" />
+              <X size={24} className="hidden sm:block" />
+            </button>
+          </div>
+        </div>
+
+        {/* Content */}
+        <div className="p-6 sm:p-8 md:p-10 max-h-[50vh] overflow-y-auto space-y-6">
+          {!currentBurgerSelection ? (
+            /* Selección de hamburguesa */
+            <>
+              <p className="text-neutral-500 text-xs sm:text-sm font-bold uppercase tracking-widest mb-4">
+                Seleccioná una hamburguesa
+              </p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {availableBurgers.map(burger => (
+                  <button
+                    key={burger.id}
+                    onClick={() => selectBurger(burger)}
+                    className="p-4 bg-neutral-800 border-2 border-white/10 hover:border-yellow-400/50 hover:bg-neutral-700 rounded-xl transition-all text-left group"
+                  >
+                    <div className="flex gap-3 items-center">
+                      <img src={burger.image} className="w-16 h-16 object-cover rounded-lg" alt={burger.name} />
+                      <div className="flex-1">
+                        <h4 className="font-black text-sm sm:text-base uppercase text-white group-hover:text-yellow-400 transition-colors">
+                          {burger.name}
+                        </h4>
+                        <p className="text-neutral-500 text-xs mt-1 line-clamp-2">{burger.description}</p>
+                      </div>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            </>
+          ) : (
+            /* Personalización de hamburguesa seleccionada */
+            <>
+              <div className="bg-black/50 p-4 rounded-xl border border-yellow-400/30">
+                <p className="text-yellow-400 text-xs font-bold uppercase mb-2">Hamburguesa seleccionada:</p>
+                <p className="text-white font-black text-lg">{currentBurgerSelection.name}</p>
+              </div>
+
+              {currentBurgerSelection.extras && currentBurgerSelection.extras.length > 0 && (
+                <>
+                  <p className="text-neutral-500 text-xs sm:text-sm font-bold uppercase tracking-widest">
+                    Extras (opcional)
+                  </p>
+                  <div className="space-y-3">
+                    {currentBurgerSelection.extras.map(extra => {
+                      const isSelected = currentExtras.some(e => e.id === extra.id);
+                      return (
+                        <button
+                          key={extra.id}
+                          onClick={() => toggleExtra(extra)}
+                          className={`w-full p-4 rounded-xl border-2 transition-all flex items-center justify-between group ${
+                            isSelected
+                              ? 'bg-yellow-400 border-yellow-400 text-black shadow-lg'
+                              : 'bg-neutral-800 border-white/10 hover:border-yellow-400/50 hover:bg-neutral-700'
+                          }`}
+                        >
+                          <div className="flex items-center gap-3">
+                            <div className={`w-6 h-6 rounded-lg border-2 flex items-center justify-center transition-all ${
+                              isSelected ? 'bg-black border-black' : 'border-white/20 group-hover:border-yellow-400/50'
+                            }`}>
+                              {isSelected && <Check size={14} className="text-yellow-400" />}
+                            </div>
+                            <span className="font-black text-sm sm:text-base uppercase">{extra.name}</span>
+                          </div>
+                          <span className={`font-black text-base sm:text-lg ${isSelected ? 'text-black' : 'text-yellow-400'}`}>
+                            +${extra.price.toLocaleString()}
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </>
+              )}
+
+              {/* Observaciones */}
+              <div className="pt-4 border-t border-white/10">
+                <label className="flex items-center gap-2 text-white text-sm font-black mb-3 uppercase tracking-wide">
+                  <MessageSquare size={16} strokeWidth={3} />
+                  <span>Observaciones</span>
+                  <span className="text-neutral-500 text-xs normal-case font-normal">(Opcional)</span>
+                </label>
+                <textarea
+                  value={currentNotes}
+                  onChange={(e) => setCurrentNotes(e.target.value)}
+                  placeholder="Ej: Sin cebolla, sin tomate..."
+                  rows={2}
+                  maxLength={150}
+                  className="w-full bg-neutral-800 border-2 border-white/10 rounded-xl px-4 py-3 text-white text-sm font-bold placeholder:text-neutral-600 focus:border-yellow-400 focus:outline-none transition-all resize-none"
+                />
+              </div>
+            </>
+          )}
+        </div>
+
+        {/* Footer */}
+        {currentBurgerSelection && (
+          <div className="p-6 sm:p-8 md:p-10 bg-black border-t border-white/10">
+            <button
+              onClick={confirmCurrentBurger}
+              className="w-full bg-yellow-400 text-black py-5 rounded-2xl font-black text-lg flex items-center justify-center gap-3 hover:bg-white transition-all active:scale-95 shadow-2xl uppercase tracking-wide"
+            >
+              <Check size={24} />
+              <span>{selectedBurgers.length + 1 < burgersCount ? 'SIGUIENTE HAMBURGUESA' : 'AGREGAR AL CARRITO'}</span>
+            </button>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
 // --- Main App ---
 
 export default function App() {
@@ -166,6 +358,7 @@ export default function App() {
   const [activeCategory, setActiveCategory] = useState<Category | 'Todos'>('Todos');
   const [lastAdded, setLastAdded] = useState<string | null>(null);
   const [customizingProduct, setCustomizingProduct] = useState<Product | null>(null);
+  const [customizingCombo, setCustomizingCombo] = useState<Product | null>(null);
   
   // Estados del checkout stepper
   const [checkoutStep, setCheckoutStep] = useState(0); // 0: Carrito, 1: Datos, 2: Logística
@@ -188,13 +381,34 @@ export default function App() {
   }, 0);
 
   const handleAddToCart = (product: Product) => {
+    // Si es un combo, abrir modal de personalización de combo
+    if (product.category === 'Combos') {
+      setCustomizingCombo(product);
+    }
     // Si el producto tiene extras disponibles, abrir modal de personalización
-    if (product.extras && product.extras.length > 0) {
+    else if (product.extras && product.extras.length > 0) {
       setCustomizingProduct(product);
     } else {
       // Si no tiene extras, agregar directamente al carrito
       addToCartWithExtras(product, []);
     }
+  };
+
+  const addComboToCart = (combo: Product, burgers: ComboburgerSelection[]) => {
+    setLastAdded(combo.id);
+    setTimeout(() => setLastAdded(null), 500);
+    
+    const cartItemId = `${combo.id}-${Date.now()}`;
+    
+    setCart(prev => [...prev, { 
+      ...combo, 
+      quantity: 1, 
+      comboBurgers: burgers,
+      cartItemId
+    }]);
+    
+    // Cerrar modal de personalización de combo
+    setCustomizingCombo(null);
   };
 
   const addToCartWithExtras = (product: Product, extras: Extra[], notes: string = '') => {
@@ -264,6 +478,20 @@ export default function App() {
       
       let itemText = `▪️ ${item.quantity}x *${item.name.toUpperCase()}*`;
       
+      // Si es un combo con hamburguesas personalizadas
+      if (item.comboBurgers && item.comboBurgers.length > 0) {
+        item.comboBurgers.forEach((burger, idx) => {
+          itemText += `%0A   ╰ ${idx + 1}° Burger: *${burger.burger.name}*`;
+          if (burger.extras.length > 0) {
+            const extrasList = burger.extras.map(e => e.name).join(', ');
+            itemText += `%0A      • Extras: ${extrasList}`;
+          }
+          if (burger.notes) {
+            itemText += `%0A      • Obs: _${burger.notes}_`;
+          }
+        });
+      }
+      
       if (item.selectedExtras && item.selectedExtras.length > 0) {
         const extrasList = item.selectedExtras.map(e => e.name).join(', ');
         itemText += `%0A   ╰ *Extras:* ${extrasList}`;
@@ -315,6 +543,15 @@ export default function App() {
           product={customizingProduct}
           onClose={() => setCustomizingProduct(null)}
           onConfirm={(extras, notes) => addToCartWithExtras(customizingProduct, extras, notes)}
+        />
+      )}
+
+      {/* Modal de Personalización de Combos */}
+      {customizingCombo && (
+        <ComboCustomizationModal
+          combo={customizingCombo}
+          onClose={() => setCustomizingCombo(null)}
+          onConfirm={(burgers) => addComboToCart(customizingCombo, burgers)}
         />
       )}
 
@@ -620,6 +857,25 @@ export default function App() {
                               </div>
                               <div className="flex-1 min-w-0">
                                 <h4 className="font-black text-lg sm:text-xl uppercase tracking-tight mb-2 group-hover:text-yellow-400 transition-colors">{item.name}</h4>
+                                
+                                {/* Mostrar hamburguesas del combo */}
+                                {item.comboBurgers && item.comboBurgers.length > 0 && (
+                                  <div className="mb-3 space-y-2 bg-black/30 p-3 rounded-lg border border-yellow-400/20">
+                                    <p className="text-xs font-bold text-yellow-400 uppercase tracking-wide mb-2">📋 Tu Combo incluye:</p>
+                                    {item.comboBurgers.map((burger, idx) => (
+                                      <div key={idx} className="text-xs">
+                                        <p className="text-white font-black">• {burger.burger.name}</p>
+                                        {burger.extras.length > 0 && (
+                                          <p className="text-neutral-400 ml-3">+ {burger.extras.map(e => e.name).join(', ')}</p>
+                                        )}
+                                        {burger.notes && (
+                                          <p className="text-neutral-500 italic ml-3">"{burger.notes}"</p>
+                                        )}
+                                      </div>
+                                    ))}
+                                  </div>
+                                )}
+                                
                                 {item.selectedExtras && item.selectedExtras.length > 0 && (
                                   <div className="mb-3 flex flex-wrap gap-2">
                                     {item.selectedExtras.map(extra => (
@@ -629,24 +885,28 @@ export default function App() {
                                     ))}
                                   </div>
                                 )}
-                                {/* Campo editable de notas */}
-                                <div className="mb-2 relative">
-                                  <div className="flex items-center gap-1.5 mb-1">
-                                    <MessageSquare size={12} className="text-neutral-500" />
-                                    <span className="text-[10px] font-bold text-neutral-500 uppercase tracking-wide">Observaciones</span>
-                                    {item.notes && (
-                                      <span className="text-[9px] text-neutral-600 ml-auto">{item.notes.length}/150</span>
-                                    )}
+                                
+                                {/* Campo editable de notas solo si no es combo */}
+                                {!item.comboBurgers && (
+                                  <div className="mb-2 relative">
+                                    <div className="flex items-center gap-1.5 mb-1">
+                                      <MessageSquare size={12} className="text-neutral-500" />
+                                      <span className="text-[10px] font-bold text-neutral-500 uppercase tracking-wide">Observaciones</span>
+                                      {item.notes && (
+                                        <span className="text-[9px] text-neutral-600 ml-auto">{item.notes.length}/150</span>
+                                      )}
+                                    </div>
+                                    <input
+                                      type="text"
+                                      value={item.notes || ''}
+                                      onChange={(e) => updateCartItemNotes(item.cartItemId!, e.target.value)}
+                                      placeholder="Ej: Sin cebolla, sin tomate, bien cocida..."
+                                      maxLength={150}
+                                      className="w-full text-xs text-neutral-300 bg-neutral-900/80 px-3 py-2 rounded-lg border border-white/10 focus:border-yellow-400/70 focus:outline-none transition-all placeholder:text-neutral-600 hover:border-yellow-400/30"
+                                    />
                                   </div>
-                                  <input
-                                    type="text"
-                                    value={item.notes || ''}
-                                    onChange={(e) => updateCartItemNotes(item.cartItemId!, e.target.value)}
-                                    placeholder="Ej: Sin cebolla, sin tomate, bien cocida..."
-                                    maxLength={150}
-                                    className="w-full text-xs text-neutral-300 bg-neutral-900/80 px-3 py-2 rounded-lg border border-white/10 focus:border-yellow-400/70 focus:outline-none transition-all placeholder:text-neutral-600 hover:border-yellow-400/30"
-                                  />
-                                </div>
+                                )}
+                                
                                 <div className="flex items-baseline gap-2">
                                   <p className="text-yellow-400 font-black text-lg sm:text-xl">${itemTotalPrice.toLocaleString()}</p>
                                   <p className="text-neutral-500 text-xs font-bold">c/u</p>
