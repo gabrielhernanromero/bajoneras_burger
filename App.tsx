@@ -262,68 +262,36 @@ export default function App() {
       const itemUnitPrice = item.price + extrasPrice;
       const itemTotal = itemUnitPrice * item.quantity;
       
-      let itemText = `*${index + 1}.* ${item.quantity}x *${item.name.toUpperCase()}*`;
-      itemText += `%0A   📦 Precio unitario: $${itemUnitPrice.toLocaleString()}`;
+      let itemText = `▪️ ${item.quantity}x *${item.name.toUpperCase()}*`;
       
       if (item.selectedExtras && item.selectedExtras.length > 0) {
-        itemText += `%0A   ➕ *Extras:*`;
-        item.selectedExtras.forEach(extra => {
-          itemText += `%0A      • ${extra.name} (+$${extra.price.toLocaleString()})`;
-        });
+        const extrasList = item.selectedExtras.map(e => e.name).join(', ');
+        itemText += `%0A   ╰ Con ${extrasList}`;
       }
       
       if (item.notes) {
-        itemText += `%0A   📝 *Obs:* _${item.notes}_`;
+        itemText += `%0A   ╰ _${item.notes}_`;
       }
       
-      itemText += `%0A   💵 *Subtotal: $${itemTotal.toLocaleString()}*`;
+      itemText += `%0A   💲 $${itemTotal.toLocaleString()}`;
       return itemText;
     }).join('%0A%0A');
     
     // Construir mensaje estructurado para WhatsApp y bots
-    const message = `🤖 *[PEDIDO_WEB_INICIADO]* 🤖%0A%0A` +
-      `┏━━━━━━━━━━━━━━━━━━━━━━━━┓%0A` +
-      `┃  🍔 *BAJONERAS BURGER* 🍔  ┃%0A` +
-      `┗━━━━━━━━━━━━━━━━━━━━━━━━┛%0A%0A` +
+    const message = `Hola Bajoneras! 👋 Quiero confirmar este pedido de la web:%0A%0A` +
+      `🧾 *Pedido #${orderId}*%0A` +
+      `👤 *${customerName}*%0A` +
+      `📍 *${customerAddress}*%0A%0A` +
       
-      `📋 *INFORMACIÓN DEL PEDIDO*%0A` +
-      `━━━━━━━━━━━━━━━━━━━━━━%0A` +
-      `🆔 ID Pedido: *${orderId}*%0A` +
-      `📅 Fecha: *${orderTimestamp}*%0A` +
-      `📊 Estado: *PENDIENTE DE CONFIRMACIÓN*%0A%0A` +
-      
-      `👤 *DATOS DEL CLIENTE*%0A` +
-      `━━━━━━━━━━━━━━━━━━━━━━%0A` +
-      `🙋 Nombre: *${customerName}*%0A` +
-      `${deliveryMethod === 'delivery' 
-        ? `📍 Dirección: *${customerAddress}*%0A🚀 Método: *DELIVERY*` 
-        : `📞 Contacto: *${customerAddress}*%0A🏪 Método: *RETIRO EN LOCAL*`}%0A` +
-      `💳 Forma de pago: *${paymentMethod === 'efectivo' ? 'EFECTIVO 💵' : 'TRANSFERENCIA 🏦'}*%0A%0A` +
-      
-      `🛒 *DETALLE DEL PEDIDO* (${totalItems} ${totalItems === 1 ? 'producto' : 'productos'})%0A` +
-      `━━━━━━━━━━━━━━━━━━━━━━%0A` +
+      `🛒 *DETALLE:*%0A%0A` +
       `${productsList}%0A%0A` +
       
-      `💰 *RESUMEN DE PAGO*%0A` +
-      `━━━━━━━━━━━━━━━━━━━━━━%0A` +
-      `💵 Subtotal productos: *$${totalPrice.toLocaleString()}*%0A` +
-      `🎁 Costo de envío: *GRATIS*%0A` +
-      `━━━━━━━━━━━━━━━━━━━━━━%0A` +
-      `🏆 *TOTAL A PAGAR: $${totalPrice.toLocaleString()}*%0A` +
-      `━━━━━━━━━━━━━━━━━━━━━━%0A%0A` +
+      `💳 *Pago:* ${paymentMethod === 'efectivo' ? 'Efectivo' : 'Transferencia'}%0A` +
+      `🚚 *Envío:* ${deliveryMethod === 'delivery' ? 'GRATIS' : 'RETIRO EN LOCAL'}%0A%0A` +
       
-      `📝 *NOTAS IMPORTANTES:*%0A` +
-      `${deliveryMethod === 'delivery' ? '🚚 El delivery es GRATIS en toda la zona' : '⏰ Pasá a retirar en 20-30 minutos'}%0A` +
-      `✅ Confirmá el pedido respondiendo este mensaje%0A` +
-      `📱 Cualquier duda, estamos para ayudarte%0A%0A` +
+      `💰 *TOTAL A PAGAR: $${totalPrice.toLocaleString()}*%0A%0A` +
       
-      `━━━━━━━━━━━━━━━━━━━━━━%0A` +
-      `🙏 *¡Muchas gracias por tu pedido!*%0A` +
-      `💬 _"Marge, no te voy a mentir..._%0A` +
-      `_¡Quiero otra hamburguesa!" - Homero_ 😄%0A` +
-      `━━━━━━━━━━━━━━━━━━━━━━%0A%0A` +
-      
-      `🤖 *[FIN_PEDIDO_WEB]* 🤖`;
+      `Aguardo confirmación${paymentMethod === 'transferencia' ? ' para transferir' : ''}. Gracias!`;
     
     // Abrir WhatsApp con el mensaje
     window.open(`https://wa.me/${SHOP_SETTINGS.whatsappNumber}?text=${message}`, '_blank');
