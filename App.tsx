@@ -266,11 +266,11 @@ export default function App() {
       
       if (item.selectedExtras && item.selectedExtras.length > 0) {
         const extrasList = item.selectedExtras.map(e => e.name).join(', ');
-        itemText += `%0A   ╰ Con ${extrasList}`;
+        itemText += `%0A   ╰ *Extras:* ${extrasList}`;
       }
       
       if (item.notes) {
-        itemText += `%0A   ╰ _${item.notes}_`;
+        itemText += `%0A   ╰ *Observaciones:* _${item.notes}_`;
       }
       
       itemText += `%0A   💲 $${itemTotal.toLocaleString()}`;
