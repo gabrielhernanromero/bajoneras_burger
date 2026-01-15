@@ -1,6 +1,6 @@
 
 import React, { useState, useMemo, useEffect } from 'react';
-import { ShoppingCart, Send, Plus, Minus, X, Menu, Phone, Instagram, Check } from 'lucide-react';
+import { ShoppingCart, Send, Plus, Minus, X, Menu, Phone, Instagram, Check, User, MapPin, Truck, Store, CreditCard, Banknote, Receipt } from 'lucide-react';
 import { PRODUCTS, SHOP_SETTINGS } from './data';
 import { Product, CartItem, Category, Extra } from './types';
 
@@ -143,6 +143,13 @@ export default function App() {
   const [activeCategory, setActiveCategory] = useState<Category | 'Todos'>('Todos');
   const [lastAdded, setLastAdded] = useState<string | null>(null);
   const [customizingProduct, setCustomizingProduct] = useState<Product | null>(null);
+  
+  // Estados del checkout stepper
+  const [checkoutStep, setCheckoutStep] = useState(0); // 0: Carrito, 1: Datos, 2: Logística
+  const [customerName, setCustomerName] = useState('');
+  const [customerAddress, setCustomerAddress] = useState('');
+  const [paymentMethod, setPaymentMethod] = useState<'efectivo' | 'transferencia'>('efectivo');
+  const [deliveryMethod, setDeliveryMethod] = useState<'delivery' | 'retiro'>('delivery');
 
   const categories: (Category | 'Todos')[] = ['Todos', 'Combos', 'Burgers', 'Postres', 'Bebidas'];
 
@@ -212,19 +219,98 @@ export default function App() {
   };
 
   const sendOrder = () => {
-    const message = `¡Hola Bajoneras Burger! 🍔%0A%0AQuisiera hacer un pedido:%0A%0A${cart.map(item => {
+    // Generar timestamp único para el pedido
+    const orderTimestamp = new Date().toLocaleString('es-AR', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit'
+    });
+    
+    // Generar ID único del pedido
+    const orderId = `WEB-${Date.now().toString().slice(-6)}`;
+    
+    // Calcular totales y cantidades
+    const totalItems = cart.reduce((sum, item) => sum + item.quantity, 0);
+    
+    // Construir sección de productos
+    const productsList = cart.map((item, index) => {
       const extrasPrice = item.selectedExtras ? item.selectedExtras.reduce((sum, e) => sum + e.price, 0) : 0;
-      const itemTotal = (item.price + extrasPrice) * item.quantity;
-      let itemText = `• ${item.quantity}x ${item.name}`;
+      const itemUnitPrice = item.price + extrasPrice;
+      const itemTotal = itemUnitPrice * item.quantity;
+      
+      let itemText = `*${index + 1}.* ${item.quantity}x *${item.name.toUpperCase()}*`;
+      itemText += `%0A   📦 Precio unitario: $${itemUnitPrice.toLocaleString()}`;
       
       if (item.selectedExtras && item.selectedExtras.length > 0) {
-        itemText += `%0A  Extras: ${item.selectedExtras.map(e => e.name).join(', ')}`;
+        itemText += `%0A   ➕ *Extras:*`;
+        item.selectedExtras.forEach(extra => {
+          itemText += `%0A      • ${extra.name} (+$${extra.price.toLocaleString()})`;
+        });
       }
       
-      itemText += ` - $${itemTotal.toLocaleString()}`;
+      itemText += `%0A   💵 *Subtotal: $${itemTotal.toLocaleString()}*`;
       return itemText;
-    }).join('%0A')}%0A%0A*Total: $${totalPrice.toLocaleString()}*%0A%0A¡Muchas gracias!`;
+    }).join('%0A%0A');
+    
+    // Construir mensaje estructurado para WhatsApp y bots
+    const message = `🤖 *[PEDIDO_WEB_INICIADO]* 🤖%0A%0A` +
+      `┏━━━━━━━━━━━━━━━━━━━━━━━━┓%0A` +
+      `┃  🍔 *BAJONERAS BURGER* 🍔  ┃%0A` +
+      `┗━━━━━━━━━━━━━━━━━━━━━━━━┛%0A%0A` +
+      
+      `📋 *INFORMACIÓN DEL PEDIDO*%0A` +
+      `━━━━━━━━━━━━━━━━━━━━━━%0A` +
+      `🆔 ID Pedido: *${orderId}*%0A` +
+      `📅 Fecha: *${orderTimestamp}*%0A` +
+      `📊 Estado: *PENDIENTE DE CONFIRMACIÓN*%0A%0A` +
+      
+      `👤 *DATOS DEL CLIENTE*%0A` +
+      `━━━━━━━━━━━━━━━━━━━━━━%0A` +
+      `🙋 Nombre: *${customerName}*%0A` +
+      `${deliveryMethod === 'delivery' 
+        ? `📍 Dirección: *${customerAddress}*%0A🚀 Método: *DELIVERY*` 
+        : `📞 Contacto: *${customerAddress}*%0A🏪 Método: *RETIRO EN LOCAL*`}%0A` +
+      `💳 Forma de pago: *${paymentMethod === 'efectivo' ? 'EFECTIVO 💵' : 'TRANSFERENCIA 🏦'}*%0A%0A` +
+      
+      `🛒 *DETALLE DEL PEDIDO* (${totalItems} ${totalItems === 1 ? 'producto' : 'productos'})%0A` +
+      `━━━━━━━━━━━━━━━━━━━━━━%0A` +
+      `${productsList}%0A%0A` +
+      
+      `💰 *RESUMEN DE PAGO*%0A` +
+      `━━━━━━━━━━━━━━━━━━━━━━%0A` +
+      `💵 Subtotal productos: *$${totalPrice.toLocaleString()}*%0A` +
+      `🎁 Costo de envío: *GRATIS*%0A` +
+      `━━━━━━━━━━━━━━━━━━━━━━%0A` +
+      `🏆 *TOTAL A PAGAR: $${totalPrice.toLocaleString()}*%0A` +
+      `━━━━━━━━━━━━━━━━━━━━━━%0A%0A` +
+      
+      `📝 *NOTAS IMPORTANTES:*%0A` +
+      `${deliveryMethod === 'delivery' ? '🚚 El delivery es GRATIS en toda la zona' : '⏰ Pasá a retirar en 20-30 minutos'}%0A` +
+      `✅ Confirmá el pedido respondiendo este mensaje%0A` +
+      `📱 Cualquier duda, estamos para ayudarte%0A%0A` +
+      
+      `━━━━━━━━━━━━━━━━━━━━━━%0A` +
+      `🙏 *¡Muchas gracias por tu pedido!*%0A` +
+      `💬 _"Marge, no te voy a mentir..._%0A` +
+      `_¡Quiero otra hamburguesa!" - Homero_ 😄%0A` +
+      `━━━━━━━━━━━━━━━━━━━━━━%0A%0A` +
+      
+      `🤖 *[FIN_PEDIDO_WEB]* 🤖`;
+    
+    // Abrir WhatsApp con el mensaje
     window.open(`https://wa.me/${SHOP_SETTINGS.whatsappNumber}?text=${message}`, '_blank');
+    
+    // Resetear todo después del envío
+    setCart([]);
+    setIsCartOpen(false);
+    setCheckoutStep(0);
+    setCustomerName('');
+    setCustomerAddress('');
+    setPaymentMethod('efectivo');
+    setDeliveryMethod('delivery');
   };
 
   return (
@@ -396,7 +482,10 @@ export default function App() {
       <div className="fixed bottom-6 sm:bottom-10 left-0 right-0 z-50 px-5 sm:px-8 flex justify-center pointer-events-none">
         {totalItems > 0 && (
           <button 
-            onClick={() => setIsCartOpen(true)}
+            onClick={() => {
+              setIsCartOpen(true);
+              setCheckoutStep(0);
+            }}
             className="w-full max-w-sm sm:max-w-lg bg-yellow-400 text-black py-5 sm:py-7 rounded-2xl sm:rounded-[2rem] font-black text-xl sm:text-3xl flex items-center justify-between px-8 sm:px-12 shadow-[0_25px_60px_rgba(0,0,0,0.8)] border-4 border-black ring-8 ring-yellow-400/20 hover:scale-[1.05] active:scale-90 transition-all animate-bounce-subtle pointer-events-auto group"
           >
             <div className="relative">
@@ -409,79 +498,515 @@ export default function App() {
         )}
       </div>
 
-      {/* Sidebar del Carrito */}
+      {/* Sidebar del Carrito con Checkout por Pasos */}
       {isCartOpen && (
         <div className="fixed inset-0 z-[60] flex justify-end">
           <div className="absolute inset-0 bg-black/95 backdrop-blur-xl transition-opacity duration-500" onClick={() => setIsCartOpen(false)}></div>
           <div className="relative w-full sm:max-w-2xl bg-neutral-900 h-full shadow-2xl flex flex-col animate-slide-in-right overflow-hidden border-l border-white/5">
-            <div className="p-8 sm:p-12 border-b border-white/10 flex items-center justify-between bg-black/60">
-              <div className="flex items-center gap-6">
-                <img src={SHOP_SETTINGS.logoUrl} alt="Logo" className="h-16 w-16 sm:h-24 sm:w-24 object-cover rounded-2xl bg-white/5" />
-                <h2 className="font-bebas text-5xl sm:text-7xl tracking-widest italic leading-none">CARRITO</h2>
+            
+            {/* Header con Logo */}
+            <div className="p-4 sm:p-6 border-b border-white/10 flex items-center justify-between bg-black/60 gap-4">
+              <div className="flex items-center gap-3 sm:gap-4 min-w-0">
+                <img src={SHOP_SETTINGS.logoUrl} alt="Logo" className="h-12 w-12 sm:h-16 sm:w-16 object-cover rounded-xl bg-white/5 flex-shrink-0" />
+                <div className="min-w-0">
+                  <h2 className="font-bebas text-3xl sm:text-5xl tracking-widest italic leading-tight">CHECKOUT</h2>
+                  <p className="text-neutral-500 text-[10px] sm:text-xs font-bold tracking-widest uppercase mt-0.5">
+                    {checkoutStep === 0 && "Tu Selección"}
+                    {checkoutStep === 1 && "Tus Datos"}
+                    {checkoutStep === 2 && "Confirmación"}
+                  </p>
+                </div>
               </div>
-              <button onClick={() => setIsCartOpen(false)} className="p-3 sm:p-5 bg-neutral-800 hover:bg-yellow-400 hover:text-black rounded-2xl transition-all hover:rotate-90">
-                <X size={36} className="sm:w-10 sm:h-10" />
+              <button onClick={() => setIsCartOpen(false)} className="p-2 sm:p-3 bg-neutral-800 hover:bg-yellow-400 hover:text-black rounded-xl transition-all hover:rotate-90 flex-shrink-0">
+                <X size={24} className="sm:w-6 sm:h-6" />
               </button>
             </div>
-            
-            <div className="flex-1 overflow-y-auto p-8 sm:p-12 space-y-10 sm:space-y-14 no-scrollbar">
-              {cart.length === 0 ? (
-                <div className="text-center py-32 opacity-20 flex flex-col items-center">
-                  <ShoppingCart size={120} strokeWidth={1} className="mb-12" />
-                  <p className="font-bebas text-4xl sm:text-6xl italic tracking-widest">¡PEDÍ ALGO!</p>
+
+            {/* Barra de Progreso */}
+            <div className="bg-neutral-950 px-6 sm:px-8 py-3 sm:py-4 border-b border-white/10">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-[10px] sm:text-xs font-bold text-neutral-500 uppercase tracking-widest">Progreso</span>
+                <span className="text-[10px] sm:text-xs font-black text-yellow-400">{Math.round((checkoutStep / 2) * 100)}%</span>
+              </div>
+              <div className="h-2 bg-neutral-800 rounded-full overflow-hidden">
+                <div 
+                  className="h-full bg-gradient-to-r from-yellow-400 to-orange-500 transition-all duration-700 ease-out shadow-[0_0_20px_rgba(250,204,21,0.5)]"
+                  style={{ width: `${(checkoutStep / 2) * 100}%` }}
+                ></div>
+              </div>
+              <div className="flex justify-between mt-2 sm:mt-3">
+                <div className={`flex flex-col items-center gap-1 ${checkoutStep >= 0 ? 'text-yellow-400' : 'text-neutral-600'}`}>
+                  <div className={`w-6 h-6 sm:w-7 sm:h-7 rounded-full flex items-center justify-center font-black text-xs ${checkoutStep >= 0 ? 'bg-yellow-400 text-black' : 'bg-neutral-800'}`}>1</div>
+                  <span className="text-[9px] sm:text-[10px] font-bold">CARRITO</span>
                 </div>
-              ) : (
-                cart.map(item => {
-                  const extrasPrice = item.selectedExtras ? item.selectedExtras.reduce((sum, e) => sum + e.price, 0) : 0;
-                  const itemTotalPrice = item.price + extrasPrice;
+                <div className={`flex flex-col items-center gap-1 ${checkoutStep >= 1 ? 'text-yellow-400' : 'text-neutral-600'}`}>
+                  <div className={`w-6 h-6 sm:w-7 sm:h-7 rounded-full flex items-center justify-center font-black text-xs ${checkoutStep >= 1 ? 'bg-yellow-400 text-black' : 'bg-neutral-800'}`}>2</div>
+                  <span className="text-[9px] sm:text-[10px] font-bold">DATOS</span>
+                </div>
+                <div className={`flex flex-col items-center gap-1 ${checkoutStep >= 2 ? 'text-yellow-400' : 'text-neutral-600'}`}>
+                  <div className={`w-6 h-6 sm:w-7 sm:h-7 rounded-full flex items-center justify-center font-black text-xs ${checkoutStep >= 2 ? 'bg-yellow-400 text-black' : 'bg-neutral-800'}`}>3</div>
+                  <span className="text-[9px] sm:text-[10px] font-bold">CONFIRMAR</span>
+                </div>
+              </div>
+            </div>
+            
+            {/* Contenido según el paso */}
+            <div className="flex-1 overflow-y-auto p-8 sm:p-12 space-y-6 no-scrollbar">
+              
+              {/* PASO 0: CARRITO */}
+              {checkoutStep === 0 && (
+                <div className="space-y-8 animate-fade-in">
                   
-                  return (
-                    <div key={item.cartItemId} className="flex gap-6 sm:gap-10 items-start animate-fade-in group">
-                      <div className="h-24 w-24 sm:h-36 sm:w-36 flex-shrink-0 relative overflow-hidden rounded-2xl sm:rounded-3xl shadow-xl border border-white/10">
-                         <img src={item.image} className="w-full h-full object-cover group-hover:scale-110 transition-transform" />
+                  {cart.length === 0 ? (
+                    <>
+                      {/* Carrito Vacío */}
+                      <div className="bg-red-500/10 border-l-4 border-red-500 p-6 rounded-xl">
+                        <p className="text-red-400 font-bold text-base sm:text-lg mb-2">
+                          😢 ¡Tu carrito está más vacío que el refrigerador de Homero!
+                        </p>
+                        <p className="text-neutral-400 text-sm">
+                          No te preocupes, tenemos el remedio perfecto para ese bajón...
+                        </p>
                       </div>
-                      <div className="flex-1 min-w-0">
-                        <h4 className="font-black text-lg sm:text-2xl uppercase tracking-tighter mb-2">{item.name}</h4>
-                        {item.selectedExtras && item.selectedExtras.length > 0 && (
-                          <div className="mb-2 flex flex-wrap gap-2">
-                            {item.selectedExtras.map(extra => (
-                              <span key={extra.id} className="text-xs bg-yellow-400/20 text-yellow-400 px-2 py-1 rounded-lg font-bold border border-yellow-400/30">
-                                +{extra.name}
-                              </span>
-                            ))}
+                      
+                      <div className="text-center py-20 flex flex-col items-center space-y-8">
+                        <div className="relative">
+                          <div className="absolute inset-0 bg-yellow-400/20 blur-3xl rounded-full"></div>
+                          <ShoppingCart size={120} strokeWidth={1} className="mb-6 text-neutral-700 relative" />
+                        </div>
+                        <div className="space-y-4">
+                          <p className="font-bebas text-4xl sm:text-6xl italic tracking-widest text-neutral-600">¡TODAVÍA NO HAY NADA!</p>
+                          <p className="text-neutral-500 text-sm sm:text-base max-w-md">
+                            Explorá nuestro menú y armá el pedido más bajonero de tu vida 🍔✨
+                          </p>
+                        </div>
+                        <button
+                          onClick={() => setIsCartOpen(false)}
+                          className="bg-yellow-400 text-black px-8 py-4 rounded-2xl font-black text-lg uppercase tracking-wide hover:bg-yellow-300 transition-all active:scale-95 shadow-lg"
+                        >
+                          📋 VER MENÚ
+                        </button>
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      {/* Banner de Recomendación del Chef */}
+                      {totalPrice < 8000 && (
+                        <div className="bg-orange-500/10 border-l-4 border-orange-500 p-5 rounded-xl relative overflow-hidden group hover:bg-orange-500/20 transition-all cursor-pointer">
+                          <div className="absolute top-0 right-0 text-6xl opacity-10 group-hover:scale-110 transition-transform">👨‍🍳</div>
+                          <div className="relative">
+                            <div className="flex items-center gap-2 mb-2">
+                              <span className="text-2xl">👨‍🍳</span>
+                              <h4 className="font-bebas text-xl sm:text-2xl tracking-widest text-orange-400 italic">
+                                RECOMENDACIÓN DEL CHEF
+                              </h4>
+                            </div>
+                            <p className="text-white font-bold text-sm mb-2">
+                              ¿Qué tal unas papas o una bebida para acompañar? 
+                            </p>
+                            <p className="text-neutral-400 text-xs">
+                              ¡Agregá algo más y hacé tu bajón completo! 🍟🥤
+                            </p>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Lista de Productos */}
+                      <div className="space-y-6">
+                        {cart.map(item => {
+                          const extrasPrice = item.selectedExtras ? item.selectedExtras.reduce((sum, e) => sum + e.price, 0) : 0;
+                          const itemTotalPrice = item.price + extrasPrice;
+                          
+                          return (
+                            <div key={item.cartItemId} className="flex gap-4 sm:gap-6 items-start animate-fade-in group bg-neutral-800/50 p-4 sm:p-5 rounded-2xl border border-white/5 hover:border-yellow-400/30 transition-all">
+                              <div className="h-24 w-24 sm:h-28 sm:w-28 flex-shrink-0 relative overflow-hidden rounded-xl shadow-xl border-2 border-white/10 group-hover:border-yellow-400/50 transition-all">
+                                 <img src={item.image} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" alt={item.name} />
+                                 <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div>
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <h4 className="font-black text-lg sm:text-xl uppercase tracking-tight mb-2 group-hover:text-yellow-400 transition-colors">{item.name}</h4>
+                                {item.selectedExtras && item.selectedExtras.length > 0 && (
+                                  <div className="mb-3 flex flex-wrap gap-2">
+                                    {item.selectedExtras.map(extra => (
+                                      <span key={extra.id} className="text-xs bg-yellow-400/20 text-yellow-400 px-2.5 py-1 rounded-lg font-bold border border-yellow-400/30">
+                                        +{extra.name}
+                                      </span>
+                                    ))}
+                                  </div>
+                                )}
+                                <div className="flex items-baseline gap-2">
+                                  <p className="text-yellow-400 font-black text-lg sm:text-xl">${itemTotalPrice.toLocaleString()}</p>
+                                  <p className="text-neutral-500 text-xs font-bold">c/u</p>
+                                </div>
+                                <p className="text-neutral-600 text-xs mt-1 font-bold">
+                                  Subtotal: ${(itemTotalPrice * item.quantity).toLocaleString()}
+                                </p>
+                              </div>
+                              <div className="flex flex-col items-center gap-2.5 bg-black/60 p-3 rounded-xl border border-white/5">
+                                <button 
+                                  onClick={() => handleAddToCart(item)} 
+                                  className="p-2.5 bg-neutral-800 hover:bg-green-500 rounded-lg transition-all hover:scale-110 active:scale-95"
+                                  title="Agregar uno más"
+                                >
+                                  <Plus size={18}/>
+                                </button>
+                                <span className="font-black text-2xl w-10 text-center text-white">{item.quantity}</span>
+                                <button 
+                                  onClick={() => removeFromCart(item.cartItemId!)} 
+                                  className="p-2.5 bg-neutral-800 hover:bg-red-500 rounded-lg transition-all hover:scale-110 active:scale-95"
+                                  title="Quitar uno"
+                                >
+                                  <Minus size={18}/>
+                                </button>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </>
+                  )}
+                </div>
+              )}
+
+              {/* PASO 1: DATOS DEL CLIENTE */}
+              {checkoutStep === 1 && (
+                <div className="space-y-8 animate-fade-in">
+                  
+                  <div className="space-y-8">
+                    {/* Input de Nombre */}
+                    <div className="group">
+                      <label className="flex items-center gap-3 text-white text-base sm:text-lg font-black mb-4 uppercase tracking-wide">
+                        <div className="w-10 h-10 bg-yellow-400 rounded-xl flex items-center justify-center text-black">
+                          <User size={20} strokeWidth={3} />
+                        </div>
+                        <span>Tu Nombre</span>
+                        <span className="text-red-500 text-2xl leading-none">*</span>
+                      </label>
+                      <div className="relative">
+                        <input 
+                          type="text"
+                          value={customerName}
+                          onChange={(e) => setCustomerName(e.target.value)}
+                          placeholder="Ej: Homero Simpson"
+                          className="w-full bg-gradient-to-br from-neutral-800 to-neutral-900 border-3 border-white/20 rounded-2xl px-6 py-5 sm:py-6 text-white text-xl sm:text-2xl font-bold placeholder:text-neutral-600 focus:border-yellow-400 focus:shadow-[0_0_30px_rgba(250,204,21,0.3)] focus:outline-none transition-all duration-300 focus:scale-[1.02]"
+                        />
+                        {customerName && (
+                          <div className="absolute right-4 top-1/2 -translate-y-1/2 text-green-500">
+                            <Check size={28} strokeWidth={3} />
                           </div>
                         )}
-                        <p className="text-yellow-400 font-black text-base sm:text-xl">${itemTotalPrice.toLocaleString()}</p>
                       </div>
-                      <div className="flex flex-col items-center gap-4 bg-black/60 p-3 sm:p-5 rounded-2xl border border-white/5">
-                        <button onClick={() => handleAddToCart(item)} className="p-2 bg-neutral-800 hover:bg-green-500 rounded-xl transition-all"><Plus size={24}/></button>
-                        <span className="font-black text-2xl sm:text-3xl w-10 text-center">{item.quantity}</span>
-                        <button onClick={() => removeFromCart(item.cartItemId!)} className="p-2 bg-neutral-800 hover:bg-red-500 rounded-xl transition-all"><Minus size={24}/></button>
+                      <p className="mt-3 text-neutral-500 text-xs sm:text-sm italic flex items-center gap-2">
+                        <span className="text-yellow-400">💡</span>
+                        <span>Escribí tu nombre para que sepamos <span className="text-yellow-400 font-bold">a quién entregarle esta obra de arte</span></span>
+                      </p>
+                    </div>
+                    
+                    {/* Input de Dirección/Teléfono */}
+                    <div className="group">
+                      <label className="flex items-center gap-3 text-white text-base sm:text-lg font-black mb-4 uppercase tracking-wide">
+                        <div className="w-10 h-10 bg-yellow-400 rounded-xl flex items-center justify-center text-black">
+                          <MapPin size={20} strokeWidth={3} />
+                        </div>
+                        <span>Tu Dirección</span>
+                        <span className="text-red-500 text-2xl leading-none">*</span>
+                      </label>
+                      <div className="relative">
+                        <input 
+                          type="text"
+                          value={customerAddress}
+                          onChange={(e) => setCustomerAddress(e.target.value)}
+                          placeholder="Ej: Av. Siempreviva 742, Springfield"
+                          className="w-full bg-gradient-to-br from-neutral-800 to-neutral-900 border-3 border-white/20 rounded-2xl px-6 py-5 sm:py-6 text-white text-xl sm:text-2xl font-bold placeholder:text-neutral-600 focus:border-yellow-400 focus:shadow-[0_0_30px_rgba(250,204,21,0.3)] focus:outline-none transition-all duration-300 focus:scale-[1.02]"
+                        />
+                        {customerAddress && (
+                          <div className="absolute right-4 top-1/2 -translate-y-1/2 text-green-500">
+                            <Check size={28} strokeWidth={3} />
+                          </div>
+                        )}
+                      </div>
+                      <p className="mt-3 text-neutral-500 text-xs sm:text-sm italic flex items-center gap-2">
+                        <span className="text-yellow-400">📍</span>
+                        <span>Especificá la dirección exacta para que tu bajón llegue <span className="text-yellow-400 font-bold">calentito y rapidito</span></span>
+                      </p>
+                    </div>
+
+                    {/* Método de Pago */}
+                    <div>
+                      <label className="flex items-center gap-3 text-white text-base sm:text-lg font-black mb-4 uppercase tracking-wide">
+                        <div className="w-10 h-10 bg-yellow-400 rounded-xl flex items-center justify-center text-black">
+                          <CreditCard size={20} strokeWidth={3} />
+                        </div>
+                        <span>Forma de Pago</span>
+                      </label>
+                      <div className="grid grid-cols-2 gap-4">
+                        <button
+                          onClick={() => setPaymentMethod('efectivo')}
+                          className={`p-6 sm:p-8 rounded-2xl border-3 font-bold text-base sm:text-lg uppercase transition-all relative overflow-hidden group ${
+                            paymentMethod === 'efectivo'
+                              ? 'bg-yellow-400 border-yellow-400 text-black shadow-[0_0_30px_rgba(250,204,21,0.4)] scale-105'
+                              : 'bg-neutral-800 border-white/10 text-neutral-400 hover:border-yellow-400/50 hover:bg-neutral-700'
+                          }`}
+                        >
+                          <div className={`absolute inset-0 bg-gradient-to-br from-yellow-300 to-orange-400 opacity-0 transition-opacity ${paymentMethod === 'efectivo' ? 'opacity-20' : 'group-hover:opacity-10'}`}></div>
+                          <div className="relative flex flex-col items-center gap-2">
+                            <Banknote size={32} strokeWidth={2.5} />
+                            <span>Efectivo</span>
+                          </div>
+                          {paymentMethod === 'efectivo' && (
+                            <div className="absolute top-2 right-2 bg-black rounded-full p-1">
+                              <Check size={16} strokeWidth={4} className="text-yellow-400" />
+                            </div>
+                          )}
+                        </button>
+                        <button
+                          onClick={() => setPaymentMethod('transferencia')}
+                          className={`p-6 sm:p-8 rounded-2xl border-3 font-bold text-base sm:text-lg uppercase transition-all relative overflow-hidden group ${
+                            paymentMethod === 'transferencia'
+                              ? 'bg-yellow-400 border-yellow-400 text-black shadow-[0_0_30px_rgba(250,204,21,0.4)] scale-105'
+                              : 'bg-neutral-800 border-white/10 text-neutral-400 hover:border-yellow-400/50 hover:bg-neutral-700'
+                          }`}
+                        >
+                          <div className={`absolute inset-0 bg-gradient-to-br from-yellow-300 to-orange-400 opacity-0 transition-opacity ${paymentMethod === 'transferencia' ? 'opacity-20' : 'group-hover:opacity-10'}`}></div>
+                          <div className="relative flex flex-col items-center gap-3">
+                            <CreditCard size={32} strokeWidth={2.5} />
+                            <span>Transfer.</span>
+                          </div>
+                          {paymentMethod === 'transferencia' && (
+                            <div className="absolute top-2 right-2 bg-black rounded-full p-1">
+                              <Check size={16} strokeWidth={4} className="text-yellow-400" />
+                            </div>
+                          )}
+                        </button>
+                      </div>
+                      <p className="mt-3 text-neutral-500 text-xs sm:text-sm italic flex items-center gap-2">
+                        <span className="text-yellow-400">💰</span>
+                        <span>Elegí cómo preferís pagar tu pedido</span>
+                      </p>
+                    </div>
+
+                    {/* Validación Visual */}
+                    {customerName.trim() && customerAddress.trim() ? (
+                      <div className="bg-green-500/10 border-l-4 border-green-500 p-5 rounded-xl animate-fade-in">
+                        <div className="flex items-center gap-3">
+                          <div className="text-2xl">✅</div>
+                          <div>
+                            <p className="text-green-400 font-bold text-sm sm:text-base mb-1">
+                              ¡Perfecto, {customerName.split(' ')[0]}! 
+                            </p>
+                            <p className="text-neutral-400 text-xs sm:text-sm">
+                              Ya tenemos todo lo que necesitamos. Hacé click en "CONTINUAR" para confirmar tu pedido
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    ) : null}
+
+                  </div>
+                </div>
+              )}
+
+              {/* PASO 2: CONFIRMACIÓN Y PAGO */}
+              {checkoutStep === 2 && (
+                <div className="space-y-8 animate-fade-in">
+                  
+                  {/* Header de Confirmación */}
+                  <div className="bg-gradient-to-r from-green-500/20 to-emerald-500/20 border-2 border-green-500/40 p-6 rounded-2xl relative overflow-hidden">
+                    <div className="absolute top-0 right-0 w-40 h-40 bg-green-500/10 blur-3xl rounded-full"></div>
+                    <div className="relative flex items-start gap-4">
+                      <div className="text-4xl">🎊</div>
+                      <div className="flex-1">
+                        <h3 className="font-bebas text-2xl sm:text-3xl tracking-widest text-green-400 mb-2 italic">
+                          ¡REVISÁ TU PEDIDO!
+                        </h3>
+                        <p className="text-white font-bold text-sm sm:text-base mb-2">
+                          Todo está listo, {customerName.split(' ')[0]} 🍔
+                        </p>
+                        <p className="text-neutral-400 text-xs italic">
+                          Si todo te parece bien, apretá el botón verde para enviarlo por WhatsApp
+                        </p>
                       </div>
                     </div>
-                  );
-                })
+                  </div>
+                  
+                  {/* Ticket/Recibo Profesional */}
+                  <div className="bg-white text-black rounded-3xl overflow-hidden shadow-2xl border-4 border-neutral-800 relative">
+                    {/* Borde superior decorativo */}
+                    <div className="h-3 bg-gradient-to-r from-yellow-400 via-orange-500 to-red-500"></div>
+                    
+                    {/* Header del Ticket */}
+                    <div className="bg-neutral-900 text-white p-6 text-center border-b-2 border-dashed border-neutral-700">
+                      <div className="flex justify-center mb-3">
+                        <div className="w-16 h-16 bg-yellow-400 rounded-full flex items-center justify-center">
+                          <Receipt size={32} className="text-black" strokeWidth={2.5} />
+                        </div>
+                      </div>
+                      <h3 className="font-bebas text-3xl sm:text-4xl tracking-widest italic text-yellow-400">BAJONERAS BURGER</h3>
+                      <p className="text-neutral-500 text-xs font-bold uppercase tracking-widest mt-2">Ticket de Pedido</p>
+                      <div className="mt-4 pt-4 border-t border-neutral-700 text-xs space-y-1">
+                        <p className="text-neutral-400">Fecha: {new Date().toLocaleDateString('es-AR')}</p>
+                        <p className="text-neutral-400">Hora: {new Date().toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' })}</p>
+                      </div>
+                    </div>
+
+                    {/* Datos del Cliente */}
+                    <div className="p-6 bg-neutral-50 border-b-2 border-dashed border-neutral-300">
+                      <h4 className="font-black text-sm uppercase tracking-wider mb-4 text-neutral-700 flex items-center gap-2">
+                        <User size={16} strokeWidth={3} />
+                        Datos del Cliente
+                      </h4>
+                      <div className="space-y-2 text-sm">
+                        <div className="flex justify-between">
+                          <span className="text-neutral-600 font-bold">Nombre:</span>
+                          <span className="font-black text-right">{customerName}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-neutral-600 font-bold">Dirección:</span>
+                          <span className="font-black text-right max-w-[60%]">{customerAddress}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-neutral-600 font-bold">Pago:</span>
+                          <span className="font-black uppercase">{paymentMethod === 'efectivo' ? '💵 EFECTIVO' : '💳 TRANSFERENCIA'}</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Detalle del Pedido */}
+                    <div className="p-6 bg-white">
+                      <h4 className="font-black text-sm uppercase tracking-wider mb-4 text-neutral-700 flex items-center gap-2">
+                        <ShoppingCart size={16} strokeWidth={3} />
+                        Detalle del Pedido
+                      </h4>
+                      <div className="space-y-4">
+                        {cart.map(item => {
+                          const extrasPrice = item.selectedExtras ? item.selectedExtras.reduce((sum, e) => sum + e.price, 0) : 0;
+                          const itemUnitPrice = item.price + extrasPrice;
+                          const itemTotal = itemUnitPrice * item.quantity;
+                          
+                          return (
+                            <div key={item.cartItemId} className="border-b border-neutral-200 pb-3 last:border-b-0">
+                              <div className="flex justify-between items-start mb-2">
+                                <div className="flex-1">
+                                  <div className="flex items-start gap-2">
+                                    <span className="font-black text-lg">{item.quantity}x</span>
+                                    <div className="flex-1">
+                                      <p className="font-black text-sm uppercase leading-tight">{item.name}</p>
+                                      {item.selectedExtras && item.selectedExtras.length > 0 && (
+                                        <div className="mt-1 space-y-1">
+                                          {item.selectedExtras.map(extra => (
+                                            <p key={extra.id} className="text-xs text-neutral-600 italic">
+                                              + {extra.name} <span className="font-bold">(${extra.price.toLocaleString()})</span>
+                                            </p>
+                                          ))}
+                                        </div>
+                                      )}
+                                    </div>
+                                  </div>
+                                </div>
+                                <div className="text-right ml-4">
+                                  <p className="font-black text-lg">${itemTotal.toLocaleString()}</p>
+                                  <p className="text-xs text-neutral-500 font-bold">${itemUnitPrice.toLocaleString()} c/u</p>
+                                </div>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+
+                    {/* Total */}
+                    <div className="p-6 bg-neutral-900 text-white border-t-2 border-dashed border-neutral-700">
+                      <div className="space-y-3">
+                        <div className="flex justify-between text-sm text-neutral-400 font-bold">
+                          <span>Subtotal</span>
+                          <span>${totalPrice.toLocaleString()}</span>
+                        </div>
+                        <div className="flex justify-between text-sm text-neutral-400 font-bold">
+                          <span>Envío</span>
+                          <span className="text-green-400 font-black">GRATIS 🎁</span>
+                        </div>
+                        <div className="pt-3 border-t-2 border-yellow-400/30 flex justify-between items-center">
+                          <span className="font-bebas text-3xl sm:text-4xl tracking-widest italic">TOTAL</span>
+                          <span className="font-black text-3xl sm:text-4xl text-yellow-400 italic">${totalPrice.toLocaleString()}</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Footer del Ticket */}
+                    <div className="bg-neutral-50 p-4 text-center border-t-2 border-dashed border-neutral-300">
+                      <p className="text-xs text-neutral-600 font-bold uppercase tracking-widest">
+                        ¡Gracias por tu pedido!
+                      </p>
+                      <p className="text-[10px] text-neutral-500 mt-1 italic">
+                        "Marge, no te voy a mentir... ¡Quiero otra hamburguesa!" - Homero
+                      </p>
+                    </div>
+
+                    {/* Borde inferior decorativo */}
+                    <div className="h-3 bg-gradient-to-r from-red-500 via-orange-500 to-yellow-400"></div>
+                  </div>
+
+                  {/* CTA Final */}
+                  <div className="bg-green-500/10 border-l-4 border-green-500 p-5 rounded-xl">
+                    <p className="text-green-400 font-bold text-sm sm:text-base">
+                      ✅ Todo está perfecto. ¡Presioná el botón verde para confirmar y enviarnos tu pedido por WhatsApp!
+                    </p>
+                  </div>
+
+                </div>
               )}
             </div>
 
-            <div className="p-8 sm:p-12 bg-black border-t border-white/10 space-y-4 pb-16">
-              <div className="space-y-4">
-                <div className="flex justify-between text-neutral-500 text-lg sm:text-2xl font-bold uppercase tracking-widest">
-                  <span>Subtotal</span>
-                  <span>${totalPrice.toLocaleString()}</span>
-                </div>
-                <div className="flex justify-between text-3xl sm:text-6xl font-black pt-6 border-t border-white/10">
-                  <span className="font-bebas italic tracking-widest">TOTAL</span>
-                  <span className="text-yellow-400 italic">${totalPrice.toLocaleString()}</span>
-                </div>
+            {/* Footer con Total y Botones */}
+            <div className="p-8 sm:p-12 bg-black border-t border-white/10 space-y-4">
+              <div className="flex justify-between text-3xl sm:text-5xl font-black">
+                <span className="font-bebas italic tracking-widest">TOTAL</span>
+                <span className="text-yellow-400 italic">${totalPrice.toLocaleString()}</span>
               </div>
-              <button 
-                onClick={sendOrder}
-                disabled={cart.length === 0}
-                className="w-full bg-green-500 text-black py-6 sm:py-9 rounded-3xl font-black text-2xl sm:text-4xl flex items-center justify-center gap-4 hover:bg-green-400 transition-all active:scale-95 disabled:opacity-20 shadow-2xl uppercase italic"
-              >
-                <Send size={32} className="sm:w-10 sm:h-10" /> ENVIAR PEDIDO
-              </button>
+              
+              <div className="flex gap-4">
+                {checkoutStep > 0 && (
+                  <button 
+                    onClick={() => setCheckoutStep(checkoutStep - 1)}
+                    className="flex-1 bg-neutral-800 text-white py-5 rounded-2xl font-black text-lg uppercase tracking-wide hover:bg-neutral-700 transition-all"
+                  >
+                    ← VOLVER
+                  </button>
+                )}
+                
+                {checkoutStep < 2 && (
+                  <button 
+                    onClick={() => {
+                      if (checkoutStep === 0 && cart.length > 0) {
+                        setCheckoutStep(1);
+                      } else if (checkoutStep === 1 && customerName.trim() && customerAddress.trim()) {
+                        setCheckoutStep(2);
+                      }
+                    }}
+                    disabled={
+                      (checkoutStep === 0 && cart.length === 0) || 
+                      (checkoutStep === 1 && (!customerName.trim() || !customerAddress.trim()))
+                    }
+                    className={`flex-1 py-5 rounded-2xl font-black text-lg sm:text-xl uppercase tracking-wide transition-all ${
+                      (checkoutStep === 0 && cart.length === 0) || 
+                      (checkoutStep === 1 && (!customerName.trim() || !customerAddress.trim()))
+                        ? 'bg-neutral-800 text-neutral-600 cursor-not-allowed opacity-50'
+                        : 'bg-yellow-400 text-black hover:bg-yellow-300 active:scale-95 shadow-lg'
+                    }`}
+                  >
+                    {checkoutStep === 0 ? '¡SEGUIR! →' : 'CONTINUAR →'}
+                  </button>
+                )}
+                
+                {checkoutStep === 2 && (
+                  <button 
+                    onClick={sendOrder}
+                    className="flex-1 bg-gradient-to-r from-green-500 to-green-600 text-black py-6 rounded-2xl font-black text-xl sm:text-2xl flex items-center justify-center gap-3 hover:from-green-400 hover:to-green-500 transition-all active:scale-95 shadow-2xl uppercase italic animate-pulse"
+                  >
+                    <Send size={28} /> ¡ENVIAR PEDIDO!
+                  </button>
+                )}
+              </div>
             </div>
           </div>
         </div>
