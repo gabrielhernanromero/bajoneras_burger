@@ -23,4 +23,5 @@ export interface CartItem extends Product {
   quantity: number;
   selectedExtras?: Extra[];
   cartItemId?: string; // ID único para diferenciar productos con distintos extras
+  notes?: string; // Observaciones del producto
 }

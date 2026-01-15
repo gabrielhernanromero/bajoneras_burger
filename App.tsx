@@ -1,6 +1,6 @@
 
 import React, { useState, useMemo, useEffect } from 'react';
-import { ShoppingCart, Send, Plus, Minus, X, Menu, Phone, Instagram, Check, User, MapPin, Truck, Store, CreditCard, Banknote, Receipt } from 'lucide-react';
+import { ShoppingCart, Send, Plus, Minus, X, Menu, Phone, Instagram, Check, User, MapPin, Truck, Store, CreditCard, Banknote, Receipt, MessageSquare } from 'lucide-react';
 import { PRODUCTS, SHOP_SETTINGS } from './data';
 import { Product, CartItem, Category, Extra } from './types';
 
@@ -20,9 +20,10 @@ const SectionHeading: React.FC<{ title: string }> = ({ title }) => (
 const CustomizationModal: React.FC<{
   product: Product;
   onClose: () => void;
-  onConfirm: (extras: Extra[]) => void;
+  onConfirm: (extras: Extra[], notes: string) => void;
 }> = ({ product, onClose, onConfirm }) => {
   const [selectedExtras, setSelectedExtras] = useState<Extra[]>([]);
+  const [productNotes, setProductNotes] = useState('');
 
   const toggleExtra = (extra: Extra) => {
     setSelectedExtras(prev => {
@@ -98,6 +99,28 @@ const CustomizationModal: React.FC<{
           ) : (
             <p className="text-neutral-600 italic text-center py-8">No hay extras disponibles para este producto.</p>
           )}
+          
+          {/* Campo de observaciones */}
+          <div className="pt-4 border-t border-white/10">
+            <label className="flex items-center gap-2 text-white text-sm font-black mb-3 uppercase tracking-wide">
+              <MessageSquare size={16} strokeWidth={3} />
+              <span>Observaciones</span>
+              <span className="text-neutral-500 text-xs normal-case font-normal">(Opcional)</span>
+            </label>
+            <div className="relative">
+              <textarea
+                value={productNotes}
+                onChange={(e) => setProductNotes(e.target.value)}
+                placeholder="Ej: Sin cebolla, sin tomate, bien cocida..."
+                rows={2}
+                maxLength={150}
+                className="w-full bg-neutral-800 border-2 border-white/10 rounded-xl px-4 py-3 text-white text-sm font-bold placeholder:text-neutral-600 focus:border-yellow-400 focus:outline-none transition-all resize-none"
+              />
+              <div className="absolute bottom-2 right-3 text-xs text-neutral-600">
+                {productNotes.length}/150
+              </div>
+            </div>
+          </div>
         </div>
 
         {/* Footer con totales */}
@@ -121,7 +144,7 @@ const CustomizationModal: React.FC<{
           </div>
 
           <button
-            onClick={() => onConfirm(selectedExtras)}
+            onClick={() => onConfirm(selectedExtras, productNotes)}
             className="w-full bg-yellow-400 text-black py-5 sm:py-6 md:py-7 rounded-2xl sm:rounded-3xl font-black text-lg sm:text-xl md:text-2xl flex items-center justify-center gap-3 sm:gap-4 hover:bg-white transition-all active:scale-95 shadow-2xl uppercase tracking-wide"
           >
             <Plus size={24} className="sm:hidden" />
@@ -174,34 +197,24 @@ export default function App() {
     }
   };
 
-  const addToCartWithExtras = (product: Product, extras: Extra[]) => {
+  const addToCartWithExtras = (product: Product, extras: Extra[], notes: string = '') => {
     setLastAdded(product.id);
     setTimeout(() => setLastAdded(null), 500);
     
     setCart(prev => {
-      // Crear un ID único para este item considerando los extras
+      // Crear un ID único para este item considerando los extras y notas
       const extrasIds = extras.map(e => e.id).sort().join('-');
-      const cartItemId = `${product.id}-${extrasIds}`;
+      const notesId = notes.trim() ? `-notes-${notes.trim().slice(0, 20)}` : '';
+      const cartItemId = `${product.id}-${extrasIds}${notesId}-${Date.now()}`;
       
-      // Buscar si ya existe este producto con estos mismos extras
-      const existing = prev.find(item => item.cartItemId === cartItemId);
-      
-      if (existing) {
-        // Si existe, incrementar cantidad
-        return prev.map(item => 
-          item.cartItemId === cartItemId 
-            ? { ...item, quantity: item.quantity + 1 } 
-            : item
-        );
-      } else {
-        // Si no existe, agregar nuevo item al carrito
-        return [...prev, { 
-          ...product, 
-          quantity: 1, 
-          selectedExtras: extras,
-          cartItemId
-        }];
-      }
+      // Siempre agregar como nuevo item si tiene notas diferentes
+      return [...prev, { 
+        ...product, 
+        quantity: 1, 
+        selectedExtras: extras,
+        notes: notes.trim() || undefined,
+        cartItemId
+      }];
     });
     
     // Cerrar modal de personalización
@@ -216,6 +229,14 @@ export default function App() {
       }
       return prev.filter(i => i.cartItemId !== cartItemId);
     });
+  };
+
+  const updateCartItemNotes = (cartItemId: string, notes: string) => {
+    setCart(prev => prev.map(item => 
+      item.cartItemId === cartItemId 
+        ? { ...item, notes: notes.trim() || undefined } 
+        : item
+    ));
   };
 
   const sendOrder = () => {
@@ -249,6 +270,10 @@ export default function App() {
         item.selectedExtras.forEach(extra => {
           itemText += `%0A      • ${extra.name} (+$${extra.price.toLocaleString()})`;
         });
+      }
+      
+      if (item.notes) {
+        itemText += `%0A   📝 *Obs:* _${item.notes}_`;
       }
       
       itemText += `%0A   💵 *Subtotal: $${itemTotal.toLocaleString()}*`;
@@ -321,7 +346,7 @@ export default function App() {
         <CustomizationModal
           product={customizingProduct}
           onClose={() => setCustomizingProduct(null)}
-          onConfirm={(extras) => addToCartWithExtras(customizingProduct, extras)}
+          onConfirm={(extras, notes) => addToCartWithExtras(customizingProduct, extras, notes)}
         />
       )}
 
@@ -634,6 +659,17 @@ export default function App() {
                                     ))}
                                   </div>
                                 )}
+                                {/* Campo editable de notas */}
+                                <div className="mb-2">
+                                  <textarea
+                                    value={item.notes || ''}
+                                    onChange={(e) => updateCartItemNotes(item.cartItemId!, e.target.value)}
+                                    placeholder="📝 Agregar observaciones..."
+                                    rows={1}
+                                    maxLength={150}
+                                    className="w-full text-xs text-neutral-300 italic bg-neutral-900/50 px-2 py-1.5 rounded border border-white/5 focus:border-yellow-400/50 focus:outline-none transition-all resize-none placeholder:text-neutral-600"
+                                  />
+                                </div>
                                 <div className="flex items-baseline gap-2">
                                   <p className="text-yellow-400 font-black text-lg sm:text-xl">${itemTotalPrice.toLocaleString()}</p>
                                   <p className="text-neutral-500 text-xs font-bold">c/u</p>
@@ -670,14 +706,14 @@ export default function App() {
 
               {/* PASO 1: DATOS DEL CLIENTE */}
               {checkoutStep === 1 && (
-                <div className="space-y-8 animate-fade-in">
+                <div className="space-y-4 animate-fade-in">
                   
-                  <div className="space-y-8">
+                  <div className="space-y-4">
                     {/* Input de Nombre */}
                     <div className="group">
-                      <label className="flex items-center gap-3 text-white text-base sm:text-lg font-black mb-4 uppercase tracking-wide">
-                        <div className="w-10 h-10 bg-yellow-400 rounded-xl flex items-center justify-center text-black">
-                          <User size={20} strokeWidth={3} />
+                      <label className="flex items-center gap-2 text-white text-sm sm:text-base font-black mb-2 uppercase tracking-wide">
+                        <div className="w-8 h-8 bg-yellow-400 rounded-lg flex items-center justify-center text-black">
+                          <User size={18} strokeWidth={3} />
                         </div>
                         <span>Tu Nombre</span>
                         <span className="text-red-500 text-2xl leading-none">*</span>
@@ -688,25 +724,25 @@ export default function App() {
                           value={customerName}
                           onChange={(e) => setCustomerName(e.target.value)}
                           placeholder="Ej: Homero Simpson"
-                          className="w-full bg-gradient-to-br from-neutral-800 to-neutral-900 border-3 border-white/20 rounded-2xl px-6 py-5 sm:py-6 text-white text-xl sm:text-2xl font-bold placeholder:text-neutral-600 focus:border-yellow-400 focus:shadow-[0_0_30px_rgba(250,204,21,0.3)] focus:outline-none transition-all duration-300 focus:scale-[1.02]"
+                          className="w-full bg-gradient-to-br from-neutral-800 to-neutral-900 border-3 border-white/20 rounded-xl px-4 py-3 text-white text-lg sm:text-xl font-bold placeholder:text-neutral-600 focus:border-yellow-400 focus:shadow-[0_0_30px_rgba(250,204,21,0.3)] focus:outline-none transition-all duration-300"
                         />
                         {customerName && (
-                          <div className="absolute right-4 top-1/2 -translate-y-1/2 text-green-500">
-                            <Check size={28} strokeWidth={3} />
+                          <div className="absolute right-3 top-1/2 -translate-y-1/2 text-green-500">
+                            <Check size={24} strokeWidth={3} />
                           </div>
                         )}
                       </div>
-                      <p className="mt-3 text-neutral-500 text-xs sm:text-sm italic flex items-center gap-2">
+                      <p className="mt-1.5 text-neutral-500 text-xs italic flex items-center gap-1.5">
                         <span className="text-yellow-400">💡</span>
-                        <span>Escribí tu nombre para que sepamos <span className="text-yellow-400 font-bold">a quién entregarle esta obra de arte</span></span>
+                        <span>Escribí el <span className="text-yellow-400 font-bold">nombre de la persona que recibe el pedido</span></span>
                       </p>
                     </div>
                     
                     {/* Input de Dirección/Teléfono */}
                     <div className="group">
-                      <label className="flex items-center gap-3 text-white text-base sm:text-lg font-black mb-4 uppercase tracking-wide">
-                        <div className="w-10 h-10 bg-yellow-400 rounded-xl flex items-center justify-center text-black">
-                          <MapPin size={20} strokeWidth={3} />
+                      <label className="flex items-center gap-2 text-white text-sm sm:text-base font-black mb-2 uppercase tracking-wide">
+                        <div className="w-8 h-8 bg-yellow-400 rounded-lg flex items-center justify-center text-black">
+                          <MapPin size={18} strokeWidth={3} />
                         </div>
                         <span>Tu Dirección</span>
                         <span className="text-red-500 text-2xl leading-none">*</span>
@@ -717,69 +753,69 @@ export default function App() {
                           value={customerAddress}
                           onChange={(e) => setCustomerAddress(e.target.value)}
                           placeholder="Ej: Av. Siempreviva 742, Springfield"
-                          className="w-full bg-gradient-to-br from-neutral-800 to-neutral-900 border-3 border-white/20 rounded-2xl px-6 py-5 sm:py-6 text-white text-xl sm:text-2xl font-bold placeholder:text-neutral-600 focus:border-yellow-400 focus:shadow-[0_0_30px_rgba(250,204,21,0.3)] focus:outline-none transition-all duration-300 focus:scale-[1.02]"
+                          className="w-full bg-gradient-to-br from-neutral-800 to-neutral-900 border-3 border-white/20 rounded-xl px-4 py-3 text-white text-lg sm:text-xl font-bold placeholder:text-neutral-600 focus:border-yellow-400 focus:shadow-[0_0_30px_rgba(250,204,21,0.3)] focus:outline-none transition-all duration-300"
                         />
                         {customerAddress && (
-                          <div className="absolute right-4 top-1/2 -translate-y-1/2 text-green-500">
-                            <Check size={28} strokeWidth={3} />
+                          <div className="absolute right-3 top-1/2 -translate-y-1/2 text-green-500">
+                            <Check size={24} strokeWidth={3} />
                           </div>
                         )}
                       </div>
-                      <p className="mt-3 text-neutral-500 text-xs sm:text-sm italic flex items-center gap-2">
+                      <p className="mt-1.5 text-neutral-500 text-xs italic flex items-center gap-1.5">
                         <span className="text-yellow-400">📍</span>
-                        <span>Especificá la dirección exacta para que tu bajón llegue <span className="text-yellow-400 font-bold">calentito y rapidito</span></span>
+                        <span>Especificá <span className="text-yellow-400 font-bold">calle, altura y entre calles</span> para que tu bajón llegue calentito</span>
                       </p>
                     </div>
 
                     {/* Método de Pago */}
                     <div>
-                      <label className="flex items-center gap-3 text-white text-base sm:text-lg font-black mb-4 uppercase tracking-wide">
-                        <div className="w-10 h-10 bg-yellow-400 rounded-xl flex items-center justify-center text-black">
-                          <CreditCard size={20} strokeWidth={3} />
+                      <label className="flex items-center gap-2 text-white text-sm sm:text-base font-black mb-2 uppercase tracking-wide">
+                        <div className="w-8 h-8 bg-yellow-400 rounded-lg flex items-center justify-center text-black">
+                          <CreditCard size={18} strokeWidth={3} />
                         </div>
                         <span>Forma de Pago</span>
                       </label>
-                      <div className="grid grid-cols-2 gap-4">
+                      <div className="grid grid-cols-2 gap-3">
                         <button
                           onClick={() => setPaymentMethod('efectivo')}
-                          className={`p-6 sm:p-8 rounded-2xl border-3 font-bold text-base sm:text-lg uppercase transition-all relative overflow-hidden group ${
+                          className={`p-3 rounded-xl border-3 font-bold text-xs sm:text-sm uppercase transition-all relative overflow-hidden group ${
                             paymentMethod === 'efectivo'
                               ? 'bg-yellow-400 border-yellow-400 text-black shadow-[0_0_30px_rgba(250,204,21,0.4)] scale-105'
                               : 'bg-neutral-800 border-white/10 text-neutral-400 hover:border-yellow-400/50 hover:bg-neutral-700'
                           }`}
                         >
                           <div className={`absolute inset-0 bg-gradient-to-br from-yellow-300 to-orange-400 opacity-0 transition-opacity ${paymentMethod === 'efectivo' ? 'opacity-20' : 'group-hover:opacity-10'}`}></div>
-                          <div className="relative flex flex-col items-center gap-2">
-                            <Banknote size={32} strokeWidth={2.5} />
+                          <div className="relative flex flex-col items-center gap-1">
+                            <Banknote size={24} strokeWidth={2.5} />
                             <span>Efectivo</span>
                           </div>
                           {paymentMethod === 'efectivo' && (
-                            <div className="absolute top-2 right-2 bg-black rounded-full p-1">
-                              <Check size={16} strokeWidth={4} className="text-yellow-400" />
+                            <div className="absolute top-1.5 right-1.5 bg-black rounded-full p-1">
+                              <Check size={14} strokeWidth={4} className="text-yellow-400" />
                             </div>
                           )}
                         </button>
                         <button
                           onClick={() => setPaymentMethod('transferencia')}
-                          className={`p-6 sm:p-8 rounded-2xl border-3 font-bold text-base sm:text-lg uppercase transition-all relative overflow-hidden group ${
+                          className={`p-3 rounded-xl border-3 font-bold text-xs sm:text-sm uppercase transition-all relative overflow-hidden group ${
                             paymentMethod === 'transferencia'
                               ? 'bg-yellow-400 border-yellow-400 text-black shadow-[0_0_30px_rgba(250,204,21,0.4)] scale-105'
                               : 'bg-neutral-800 border-white/10 text-neutral-400 hover:border-yellow-400/50 hover:bg-neutral-700'
                           }`}
                         >
                           <div className={`absolute inset-0 bg-gradient-to-br from-yellow-300 to-orange-400 opacity-0 transition-opacity ${paymentMethod === 'transferencia' ? 'opacity-20' : 'group-hover:opacity-10'}`}></div>
-                          <div className="relative flex flex-col items-center gap-3">
-                            <CreditCard size={32} strokeWidth={2.5} />
+                          <div className="relative flex flex-col items-center gap-1">
+                            <CreditCard size={24} strokeWidth={2.5} />
                             <span>Transfer.</span>
                           </div>
                           {paymentMethod === 'transferencia' && (
-                            <div className="absolute top-2 right-2 bg-black rounded-full p-1">
-                              <Check size={16} strokeWidth={4} className="text-yellow-400" />
+                            <div className="absolute top-1.5 right-1.5 bg-black rounded-full p-1">
+                              <Check size={14} strokeWidth={4} className="text-yellow-400" />
                             </div>
                           )}
                         </button>
                       </div>
-                      <p className="mt-3 text-neutral-500 text-xs sm:text-sm italic flex items-center gap-2">
+                      <p className="mt-1.5 text-neutral-500 text-xs italic flex items-center gap-1.5">
                         <span className="text-yellow-400">💰</span>
                         <span>Elegí cómo preferís pagar tu pedido</span>
                       </p>
@@ -787,14 +823,14 @@ export default function App() {
 
                     {/* Validación Visual */}
                     {customerName.trim() && customerAddress.trim() ? (
-                      <div className="bg-green-500/10 border-l-4 border-green-500 p-5 rounded-xl animate-fade-in">
-                        <div className="flex items-center gap-3">
-                          <div className="text-2xl">✅</div>
+                      <div className="bg-green-500/10 border-l-4 border-green-500 p-2.5 rounded-xl animate-fade-in">
+                        <div className="flex items-center gap-2">
+                          <div className="text-lg">✅</div>
                           <div>
-                            <p className="text-green-400 font-bold text-sm sm:text-base mb-1">
+                            <p className="text-green-400 font-bold text-xs sm:text-sm mb-0.5">
                               ¡Perfecto, {customerName.split(' ')[0]}! 
                             </p>
-                            <p className="text-neutral-400 text-xs sm:text-sm">
+                            <p className="text-neutral-400 text-xs">
                               Ya tenemos todo lo que necesitamos. Hacé click en "CONTINUAR" para confirmar tu pedido
                             </p>
                           </div>
@@ -900,6 +936,11 @@ export default function App() {
                                           ))}
                                         </div>
                                       )}
+                                      {item.notes && (
+                                        <p className="mt-1 text-xs text-neutral-600 italic bg-yellow-50 px-2 py-0.5 rounded inline-block">
+                                          📝 {item.notes}
+                                        </p>
+                                      )}
                                     </div>
                                   </div>
                                 </div>
@@ -944,13 +985,6 @@ export default function App() {
 
                     {/* Borde inferior decorativo */}
                     <div className="h-3 bg-gradient-to-r from-red-500 via-orange-500 to-yellow-400"></div>
-                  </div>
-
-                  {/* CTA Final */}
-                  <div className="bg-green-500/10 border-l-4 border-green-500 p-5 rounded-xl">
-                    <p className="text-green-400 font-bold text-sm sm:text-base">
-                      ✅ Todo está perfecto. ¡Presioná el botón verde para confirmar y enviarnos tu pedido por WhatsApp!
-                    </p>
                   </div>
 
                 </div>
