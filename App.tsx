@@ -279,7 +279,7 @@ export default function App() {
     
     // Construir mensaje estructurado para WhatsApp y bots
     const message = `Hola Bajoneras! 👋 Quiero confirmar este pedido de la web:%0A%0A` +
-      `🧾 *Pedido #${orderId}*%0A` +
+      `🧾 *Pedido N° ${orderId}*%0A` +
       `👤 *${customerName}*%0A` +
       `📍 *${customerAddress}*%0A%0A` +
       
