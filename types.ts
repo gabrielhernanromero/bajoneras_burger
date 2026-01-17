@@ -16,6 +16,7 @@ export interface Product {
   category: Category;
   isPopular?: boolean;
   isPromo?: boolean;
+  isCombo?: boolean;
   extras?: Extra[];
 }
 

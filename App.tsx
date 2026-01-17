@@ -359,6 +359,7 @@ export default function App() {
   const [lastAdded, setLastAdded] = useState<string | null>(null);
   const [customizingProduct, setCustomizingProduct] = useState<Product | null>(null);
   const [customizingCombo, setCustomizingCombo] = useState<Product | null>(null);
+  const [comboCarouselIndex, setComboCarouselIndex] = useState(0);
   
   // Estados del checkout stepper
   const [checkoutStep, setCheckoutStep] = useState(0); // 0: Carrito, 1: Datos, 2: Logística
@@ -367,7 +368,7 @@ export default function App() {
   const [paymentMethod, setPaymentMethod] = useState<'efectivo' | 'transferencia'>('efectivo');
   const [deliveryMethod, setDeliveryMethod] = useState<'delivery' | 'retiro'>('delivery');
 
-  const categories: (Category | 'Todos')[] = ['Todos', 'Combos', 'Burgers', 'Postres', 'Bebidas'];
+  const categories: (Category | 'Todos')[] = ['Todos', 'Combos', 'Burgers', 'Postres'];
 
   const filteredProducts = useMemo(() => {
     if (activeCategory === 'Todos') return PRODUCTS;
@@ -582,10 +583,6 @@ export default function App() {
           <div className="mt-8 space-y-3 sm:space-y-4 px-2">
             <h1 className="font-bebas text-5xl sm:text-6xl md:text-8xl tracking-widest text-white drop-shadow-2xl">BAJONERAS BURGER</h1>
             <p className="text-yellow-400 font-bold text-lg sm:text-2xl tracking-[0.3em] uppercase italic opacity-90 drop-shadow-lg">¡Uuuuh... hamburguesas!</p>
-            <div className="flex flex-wrap gap-3 justify-center pt-2">
-               <Badge color="bg-green-500 font-black text-xs sm:text-sm">{SHOP_SETTINGS.freeDeliveryText}</Badge>
-               <Badge color="bg-red-600 font-black text-xs sm:text-sm shadow-red-600/20 shadow-lg">ABIERTOS AHORA</Badge>
-            </div>
           </div>
         </div>
 
@@ -666,38 +663,72 @@ export default function App() {
 
       {/* Contenido Principal */}
       <main className="max-w-7xl mx-auto px-4 sm:px-8 py-12 sm:py-20 pb-44">
-        {activeCategory === 'Todos' && (
-          <section className="mb-20 sm:mb-32">
-            <div className="group relative bg-neutral-900 rounded-[2.5rem] sm:rounded-[4rem] p-1 shadow-2xl overflow-hidden hover:shadow-yellow-400/20 transition-all duration-700">
-               <div className="absolute inset-0 bg-gradient-to-br from-yellow-400 to-orange-600 opacity-10 group-hover:opacity-40 transition-opacity"></div>
-               <div className="relative bg-neutral-900/95 rounded-[2.4rem] sm:rounded-[3.9rem] p-6 sm:p-16 flex flex-col lg:flex-row items-center gap-10 sm:gap-16">
-                  <div className="w-full lg:w-1/2 aspect-video sm:aspect-square rounded-[2rem] sm:rounded-[3rem] overflow-hidden shadow-2xl relative">
-                     <img src={PRODUCTS[0].image} alt="Destacado" className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-[2s]" />
-                     <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent"></div>
-                     <div className="absolute top-4 left-4 sm:top-8 sm:left-8 bg-yellow-400 text-black px-5 py-2 sm:px-8 py-3 rounded-2xl border-4 border-black shadow-2xl">
-                        <p className="font-bebas text-2xl sm:text-4xl tracking-widest leading-none uppercase italic">¡BAJÓN DEL MES!</p>
-                     </div>
+        {/* Carrusel de Combos - Primera Sección */}
+        {(activeCategory === 'Todos' || activeCategory === 'Combos') && (
+          <section className="animate-fade-in scroll-mt-28" id="combos-carousel">
+            <SectionHeading title="COMBOS" />
+            <div className="relative">
+              {/* Carrusel Container */}
+              <div className="flex items-center justify-center gap-4 sm:gap-8">
+                {/* Botón Anterior */}
+                <button
+                  onClick={() => {
+                    const combosCount = PRODUCTS.filter(p => p.category === 'Combos').length;
+                    setComboCarouselIndex((prev) => (prev - 1 + combosCount) % combosCount);
+                  }}
+                  className="flex-shrink-0 p-3 sm:p-4 bg-yellow-400 hover:bg-white text-black rounded-full transition-all hover:scale-110 active:scale-90 shadow-lg"
+                >
+                  <svg className="w-5 h-5 sm:w-6 sm:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M15 19l-7-7 7-7" />
+                  </svg>
+                </button>
+
+                {/* Carrusel Items */}
+                <div className="flex-1 overflow-hidden">
+                  <div className="flex transition-transform duration-500 ease-out" style={{ transform: `translateX(-${comboCarouselIndex * 100}%)` }}>
+                    {PRODUCTS.filter(p => p.category === 'Combos').map(product => (
+                      <div key={product.id} className="w-full flex-shrink-0">
+                        <ProductCard product={product} onAdd={handleAddToCart} isAnimating={lastAdded === product.id} />
+                      </div>
+                    ))}
                   </div>
-                  <div className="w-full lg:w-1/2 space-y-6 sm:space-y-10 text-center lg:text-left">
-                     <h2 className="font-bebas text-5xl sm:text-8xl md:text-9xl leading-[0.9] tracking-tighter italic text-white drop-shadow-lg">COMBO<br/><span className="text-yellow-400">BAJONERO</span></h2>
-                     <p className="text-neutral-400 text-lg sm:text-2xl leading-relaxed font-light px-2 sm:px-0">{PRODUCTS[0].description}</p>
-                     <div className="flex flex-col items-center lg:items-start gap-6 pt-4">
-                        <span className="text-6xl sm:text-7xl lg:text-8xl font-black text-white italic tracking-tighter border-b-4 border-yellow-400 pb-2">${PRODUCTS[0].price.toLocaleString()}</span>
-                        <button 
-                          onClick={() => handleAddToCart(PRODUCTS[0])}
-                          className="bg-yellow-400 text-black py-5 sm:py-7 px-10 sm:px-16 rounded-3xl font-black text-xl sm:text-2xl lg:text-3xl flex items-center justify-center gap-4 hover:bg-white hover:scale-105 transition-all shadow-2xl active:scale-95"
-                        >
-                          <ShoppingCart size={28} className="sm:w-9 sm:h-9" /> ¡PEDIR YA!
-                        </button>
-                     </div>
-                  </div>
-               </div>
+                </div>
+
+                {/* Botón Siguiente */}
+                <button
+                  onClick={() => {
+                    const combosCount = PRODUCTS.filter(p => p.category === 'Combos').length;
+                    setComboCarouselIndex((prev) => (prev + 1) % combosCount);
+                  }}
+                  className="flex-shrink-0 p-3 sm:p-4 bg-yellow-400 hover:bg-white text-black rounded-full transition-all hover:scale-110 active:scale-90 shadow-lg"
+                >
+                  <svg className="w-5 h-5 sm:w-6 sm:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M9 5l7 7-7 7" />
+                  </svg>
+                </button>
+              </div>
+
+              {/* Indicadores de página */}
+              <div className="flex justify-center gap-2 sm:gap-3 mt-6 sm:mt-8">
+                {PRODUCTS.filter(p => p.category === 'Combos').map((_, idx) => (
+                  <button
+                    key={idx}
+                    onClick={() => setComboCarouselIndex(idx)}
+                    className={`h-2 sm:h-3 rounded-full transition-all ${
+                      idx === comboCarouselIndex
+                        ? 'bg-yellow-400 w-8 sm:w-10'
+                        : 'bg-neutral-700 w-2 sm:w-3 hover:bg-neutral-600'
+                    }`}
+                  />
+                ))}
+              </div>
             </div>
           </section>
         )}
 
         <div className="space-y-24 sm:space-y-40">
-          {(activeCategory === 'Todos' ? ['Combos', 'Burgers', 'Postres', 'Bebidas'] : [activeCategory]).map(cat => (
+          {/* Sección de Burgers y Postres */}
+          {(activeCategory === 'Todos' ? ['Burgers', 'Postres'] : (activeCategory !== 'Combos' ? [activeCategory] : [])).map(cat => (
              <section key={cat} className="animate-fade-in scroll-mt-28" id={cat.toLowerCase()}>
                <SectionHeading title={cat} />
                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-8 sm:gap-14">
@@ -1409,9 +1440,17 @@ const ProductCard: React.FC<{ product: Product; onAdd: (p: Product) => void; isA
           </div>
           <button 
             onClick={() => onAdd(product)}
-            className="w-full bg-white text-black py-5 sm:py-7 px-6 sm:px-8 rounded-2xl sm:rounded-[2rem] font-black text-base sm:text-xl lg:text-2xl uppercase flex items-center justify-center gap-3 hover:bg-yellow-400 transition-all active:scale-90 shadow-2xl group-hover:translate-y-[-8px] border-4 border-transparent hover:border-black"
+            className="w-full bg-yellow-400 text-black py-5 sm:py-7 px-6 sm:px-8 rounded-2xl sm:rounded-[2rem] font-black text-base sm:text-xl lg:text-2xl uppercase flex items-center justify-center gap-3 hover:bg-white transition-all active:scale-90 shadow-2xl group-hover:translate-y-[-8px] border-4 border-transparent hover:border-black"
           >
-            <Plus size={20} className="sm:w-6 sm:h-6 lg:w-8 lg:h-8" /> AGREGAR
+            {product.isCombo ? (
+              <>
+                <ShoppingCart size={20} className="sm:w-6 sm:h-6 lg:w-8 lg:h-8" /> ¡PEDIR YA!
+              </>
+            ) : (
+              <>
+                <Plus size={20} className="sm:w-6 sm:h-6 lg:w-8 lg:h-8" /> AGREGAR
+              </>
+            )}
           </button>
         </div>
       </div>
