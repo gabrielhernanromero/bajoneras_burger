@@ -1,8 +1,9 @@
 
 import React, { useState, useMemo, useEffect } from 'react';
-import { ShoppingCart, Send, Plus, Minus, X, Menu, Phone, Instagram, Check, User, MapPin, Truck, Store, CreditCard, Banknote, Receipt, MessageSquare } from 'lucide-react';
+import { ShoppingCart, Send, Plus, Minus, X, Menu, Phone, Instagram, Check, User, MapPin, Truck, Store, CreditCard, Banknote, Receipt, MessageSquare, Settings } from 'lucide-react';
 import { PRODUCTS, SHOP_SETTINGS } from './data';
 import { Product, CartItem, Category, Extra, ComboburgerSelection } from './types';
+import AdminPanel from './AdminPanel';
 
 // --- Helper Components ---
 
@@ -162,9 +163,10 @@ const ComboCustomizationModal: React.FC<{
   combo: Product;
   onClose: () => void;
   onConfirm: (burgers: ComboburgerSelection[]) => void;
-}> = ({ combo, onClose, onConfirm }) => {
+  products: Product[];
+}> = ({ combo, onClose, onConfirm, products }) => {
   const burgersCount = combo.id === 'combo-duo-share' ? 2 : 1;
-  const availableBurgers = PRODUCTS.filter(p => p.category === 'Burgers');
+  const availableBurgers = products.filter(p => p.category === 'Burgers');
   
   const [selectedBurgers, setSelectedBurgers] = useState<ComboburgerSelection[]>([]);
   const [currentStep, setCurrentStep] = useState(0);
@@ -360,6 +362,8 @@ export default function App() {
   const [customizingProduct, setCustomizingProduct] = useState<Product | null>(null);
   const [customizingCombo, setCustomizingCombo] = useState<Product | null>(null);
   const [comboCarouselIndex, setComboCarouselIndex] = useState(0);
+  const [showAdminPanel, setShowAdminPanel] = useState(false);
+  const [products, setProducts] = useState<Product[]>(PRODUCTS);
   
   // Estados del checkout stepper
   const [checkoutStep, setCheckoutStep] = useState(0); // 0: Carrito, 1: Datos, 2: Logística
@@ -371,9 +375,9 @@ export default function App() {
   const categories: (Category | 'Todos')[] = ['Todos', 'Combos', 'Burgers', 'Postres'];
 
   const filteredProducts = useMemo(() => {
-    if (activeCategory === 'Todos') return PRODUCTS;
-    return PRODUCTS.filter(p => p.category === activeCategory);
-  }, [activeCategory]);
+    if (activeCategory === 'Todos') return products;
+    return products.filter(p => p.category === activeCategory);
+  }, [activeCategory, products]);
 
   const totalItems = cart.reduce((acc, item) => acc + item.quantity, 0);
   const totalPrice = cart.reduce((acc, item) => {
@@ -553,6 +557,7 @@ export default function App() {
           combo={customizingCombo}
           onClose={() => setCustomizingCombo(null)}
           onConfirm={(burgers) => addComboToCart(customizingCombo, burgers)}
+          products={products}
         />
       )}
 
@@ -603,13 +608,20 @@ export default function App() {
       <nav className="sticky top-0 z-40 bg-neutral-950/95 backdrop-blur-2xl border-b border-white/5 py-3 sm:py-5 shadow-[0_15px_40px_rgba(0,0,0,0.9)]">
         <div className="max-w-6xl mx-auto px-4">
           {/* Título para móvil */}
-          <div className="flex sm:hidden items-center justify-center">
+          <div className="flex sm:hidden items-center justify-between">
             <span className="font-bebas text-2xl tracking-widest italic">MENÚ</span>
+            <button
+              onClick={() => setShowAdminPanel(true)}
+              className="p-2 bg-neutral-800 hover:bg-yellow-400 hover:text-black rounded-lg transition-all"
+              title="Panel de Administrador"
+            >
+              <Settings size={20} />
+            </button>
           </div>
 
           {/* Menú desktop */}
           <div className="hidden sm:block overflow-x-auto no-scrollbar scroll-smooth">
-            <div className="flex gap-4 sm:gap-8 justify-start sm:justify-center min-w-max pb-1 sm:pb-0">
+            <div className="flex gap-4 sm:gap-8 justify-start sm:justify-center min-w-max pb-1 sm:pb-0 items-center">
               {categories.map(cat => (
                 <button
                   key={cat}
@@ -623,6 +635,14 @@ export default function App() {
                   {cat}
                 </button>
               ))}
+              <div className="flex-1"></div>
+              <button
+                onClick={() => setShowAdminPanel(true)}
+                className="p-2.5 bg-neutral-800 hover:bg-yellow-400 hover:text-black text-neutral-400 hover:text-black rounded-lg transition-all"
+                title="Panel de Administrador"
+              >
+                <Settings size={20} />
+              </button>
             </div>
           </div>
         </div>
@@ -673,7 +693,7 @@ export default function App() {
                 {/* Botón Anterior */}
                 <button
                   onClick={() => {
-                    const combosCount = PRODUCTS.filter(p => p.category === 'Combos').length;
+                    const combosCount = products.filter(p => p.category === 'Combos').length;
                     setComboCarouselIndex((prev) => (prev - 1 + combosCount) % combosCount);
                   }}
                   className="flex-shrink-0 p-3 sm:p-4 bg-yellow-400 hover:bg-white text-black rounded-full transition-all hover:scale-110 active:scale-90 shadow-lg"
@@ -686,7 +706,7 @@ export default function App() {
                 {/* Carrusel Items */}
                 <div className="flex-1 overflow-hidden">
                   <div className="flex transition-transform duration-500 ease-out" style={{ transform: `translateX(-${comboCarouselIndex * 100}%)` }}>
-                    {PRODUCTS.filter(p => p.category === 'Combos').map(product => (
+                    {products.filter(p => p.category === 'Combos').map(product => (
                       <div key={product.id} className="w-full flex-shrink-0">
                         <ProductCard product={product} onAdd={handleAddToCart} isAnimating={lastAdded === product.id} />
                       </div>
@@ -697,7 +717,7 @@ export default function App() {
                 {/* Botón Siguiente */}
                 <button
                   onClick={() => {
-                    const combosCount = PRODUCTS.filter(p => p.category === 'Combos').length;
+                    const combosCount = products.filter(p => p.category === 'Combos').length;
                     setComboCarouselIndex((prev) => (prev + 1) % combosCount);
                   }}
                   className="flex-shrink-0 p-3 sm:p-4 bg-yellow-400 hover:bg-white text-black rounded-full transition-all hover:scale-110 active:scale-90 shadow-lg"
@@ -710,7 +730,7 @@ export default function App() {
 
               {/* Indicadores de página */}
               <div className="flex justify-center gap-2 sm:gap-3 mt-6 sm:mt-8">
-                {PRODUCTS.filter(p => p.category === 'Combos').map((_, idx) => (
+                {products.filter(p => p.category === 'Combos').map((_, idx) => (
                   <button
                     key={idx}
                     onClick={() => setComboCarouselIndex(idx)}
@@ -732,7 +752,7 @@ export default function App() {
              <section key={cat} className="animate-fade-in scroll-mt-28" id={cat.toLowerCase()}>
                <SectionHeading title={cat} />
                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-8 sm:gap-14">
-                 {PRODUCTS.filter(p => p.category === cat).map(product => (
+                 {products.filter(p => p.category === cat).map(product => (
                    <ProductCard key={product.id} product={product} onAdd={handleAddToCart} isAnimating={lastAdded === product.id} />
                  ))}
                </div>
@@ -1406,6 +1426,18 @@ export default function App() {
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
         html { scroll-behavior: smooth; background: #0a0a0a; }
       `}</style>
+
+      {/* Admin Panel */}
+      {showAdminPanel && (
+        <AdminPanel 
+          products={products} 
+          onClose={() => setShowAdminPanel(false)} 
+          onSave={(updatedProducts) => {
+            setProducts(updatedProducts);
+            setShowAdminPanel(false);
+          }}
+        />
+      )}
     </div>
   );
 }
