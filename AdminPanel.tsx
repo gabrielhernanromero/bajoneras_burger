@@ -17,6 +17,11 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ products, onClose, onSave }) =>
   const [showJsonCode, setShowJsonCode] = useState(false);
   const [dragActive, setDragActive] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<string>('Todos');
+  const [showAddCategoryModal, setShowAddCategoryModal] = useState(false);
+  const [newCategoryName, setNewCategoryName] = useState('');
+
+  // Obtener categorías únicas de los productos
+  const categories = ['Todos', ...Array.from(new Set(editedProducts.map(p => p.category)))];
 
   const ADMIN_PASSWORD = 'burger2024'; // Cambiar esta contraseña
 
@@ -190,18 +195,53 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ products, onClose, onSave }) =>
   };
 
   const handleAddProduct = () => {
-    const category = selectedCategory === 'Todos' ? 'Combos' : selectedCategory;
+    const category = selectedCategory === 'Todos' ? (categories.length > 1 ? categories[1] : 'General') : selectedCategory;
     const newProduct: Product = {
       id: `product-${Date.now()}`,
       name: 'Nuevo Producto',
       description: 'Descripción del producto',
       price: 0,
       image: '/placeholder.jpg',
-      category: category as any
+      category: category
     };
     setEditedProducts([...editedProducts, newProduct]);
     setEditingIndex(editedProducts.length);
     setSelectedCategory(category);
+  };
+
+  const handleAddCategory = () => {
+    if (!newCategoryName.trim()) {
+      alert('⚠️ Por favor ingresa un nombre para la sección');
+      return;
+    }
+    
+    if (categories.includes(newCategoryName)) {
+      alert('⚠️ Ya existe una sección con ese nombre');
+      return;
+    }
+
+    setSelectedCategory(newCategoryName);
+    setNewCategoryName('');
+    setShowAddCategoryModal(false);
+    alert(`✅ Sección "${newCategoryName}" creada.\n\nAhora puedes agregar productos a esta sección.`);
+  };
+
+  const handleDeleteCategory = (category: string) => {
+    const productsInCategory = editedProducts.filter(p => p.category === category);
+    
+    if (productsInCategory.length > 0) {
+      const confirmDelete = confirm(
+        `⚠️ La sección "${category}" tiene ${productsInCategory.length} producto(s).\n\n` +
+        `¿Deseas eliminar la sección y todos sus productos?`
+      );
+      
+      if (!confirmDelete) return;
+      
+      setEditedProducts(editedProducts.filter(p => p.category !== category));
+      setSelectedCategory('Todos');
+    }
+    
+    alert(`✅ Sección "${category}" eliminada`);
   };
 
   const generateJsonCode = () => {
@@ -287,6 +327,12 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ products, onClose, onSave }) =>
             <Plus size={20} /> AGREGAR PRODUCTO
           </button>
           <button
+            onClick={() => setShowAddCategoryModal(true)}
+            className="bg-purple-600 text-white px-6 py-3 rounded-lg font-bold flex items-center gap-2 hover:bg-purple-700 transition"
+          >
+            <Plus size={20} /> AGREGAR SECCIÓN
+          </button>
+          <button
             onClick={() => setShowJsonCode(!showJsonCode)}
             className="bg-blue-600 text-white px-6 py-3 rounded-lg font-bold hover:bg-blue-700 transition"
           >
@@ -305,6 +351,52 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ products, onClose, onSave }) =>
             <RotateCcw size={20} /> RESETEAR A ORIGINAL
           </button>
         </div>
+
+        {/* Modal para agregar categoría */}
+        {showAddCategoryModal && (
+          <div className="fixed inset-0 z-[250] flex items-center justify-center p-4">
+            <div className="absolute inset-0 bg-black/80" onClick={() => setShowAddCategoryModal(false)}></div>
+            <div className="relative bg-neutral-900 rounded-2xl p-8 max-w-md w-full border-2 border-purple-400">
+              <h2 className="font-bebas text-3xl text-purple-400 mb-4 tracking-widest">NUEVA SECCIÓN</h2>
+              <p className="text-neutral-400 mb-6 text-sm">
+                Crea una nueva sección para organizar tus productos
+              </p>
+              
+              <div className="space-y-4">
+                <div>
+                  <label className="text-white font-bold block mb-2">NOMBRE DE LA SECCIÓN</label>
+                  <input
+                    type="text"
+                    value={newCategoryName}
+                    onChange={(e) => setNewCategoryName(e.target.value)}
+                    onKeyPress={(e) => e.key === 'Enter' && handleAddCategory()}
+                    placeholder="Ej: Bebidas, Postres, Promos..."
+                    className="w-full bg-neutral-800 border-2 border-purple-400 rounded-lg px-4 py-3 text-white font-bold text-lg focus:outline-none"
+                    autoFocus
+                  />
+                </div>
+
+                <div className="flex gap-3">
+                  <button
+                    onClick={handleAddCategory}
+                    className="flex-1 bg-purple-400 text-black py-3 rounded-lg font-black text-lg hover:bg-purple-300 transition"
+                  >
+                    CREAR SECCIÓN
+                  </button>
+                  <button
+                    onClick={() => {
+                      setShowAddCategoryModal(false);
+                      setNewCategoryName('');
+                    }}
+                    className="bg-neutral-800 text-purple-400 py-3 px-6 rounded-lg font-black hover:bg-neutral-700 transition"
+                  >
+                    <X size={24} />
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Código JSON */}
         {showJsonCode && (
@@ -345,37 +437,51 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ products, onClose, onSave }) =>
 
         {/* Filtro por categoría */}
         <div className="mb-6 flex gap-3 flex-wrap">
-          {['Todos', 'Combos', 'Burgers', 'Postres', 'Bebidas'].map((category) => {
+          {categories.map((category) => {
             const count = category === 'Todos' 
               ? editedProducts.length 
               : editedProducts.filter(p => p.category === category).length;
             
             return (
-              <button
-                key={category}
-                onClick={() => setSelectedCategory(category)}
-                className={`px-6 py-3 rounded-lg font-bold transition relative ${
-                  selectedCategory === category
-                    ? 'bg-yellow-400 text-black'
-                    : 'bg-neutral-700 text-white hover:bg-neutral-600'
-                }`}
-              >
-                {category}
-                <span className={`ml-2 text-xs px-2 py-1 rounded-full ${
-                  selectedCategory === category
-                    ? 'bg-black text-yellow-400'
-                    : 'bg-neutral-800 text-neutral-400'
-                }`}>
-                  {count}
-                </span>
-              </button>
+              <div key={category} className="relative group">
+                <button
+                  onClick={() => setSelectedCategory(category)}
+                  className={`px-6 py-3 rounded-lg font-bold transition relative ${
+                    selectedCategory === category
+                      ? 'bg-yellow-400 text-black'
+                      : 'bg-neutral-700 text-white hover:bg-neutral-600'
+                  }`}
+                >
+                  {category}
+                  <span className={`ml-2 text-xs px-2 py-1 rounded-full ${
+                    selectedCategory === category
+                      ? 'bg-black text-yellow-400'
+                      : 'bg-neutral-800 text-neutral-400'
+                  }`}>
+                    {count}
+                  </span>
+                </button>
+                
+                {/* Botón eliminar sección (solo si no es "Todos" y no tiene productos) */}
+                {category !== 'Todos' && (
+                  <button
+                    onClick={() => handleDeleteCategory(category)}
+                    className={`absolute -top-2 -right-2 bg-red-600 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition ${
+                      count > 0 ? 'hover:bg-red-700' : 'hover:bg-red-700'
+                    }`}
+                    title={count > 0 ? `Eliminar sección y ${count} producto(s)` : 'Eliminar sección'}
+                  >
+                    <X size={14} />
+                  </button>
+                )}
+              </div>
             );
           })}
         </div>
 
         {/* Productos organizados por categoría */}
         <div className="space-y-8">
-          {['Combos', 'Burgers', 'Postres', 'Bebidas'].map((category) => {
+          {categories.filter(c => c !== 'Todos').map((category) => {
             const productsInCategory = editedProducts.filter(p => 
               selectedCategory === 'Todos' ? p.category === category : p.category === selectedCategory
             );
@@ -386,8 +492,11 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ products, onClose, onSave }) =>
             return (
               <div key={category}>
                 {selectedCategory === 'Todos' && (
-                  <h2 className="font-bebas text-3xl text-yellow-400 mb-4 border-b-2 border-yellow-400 pb-2">
-                    {category}
+                  <h2 className="font-bebas text-3xl text-yellow-400 mb-4 border-b-2 border-yellow-400 pb-2 flex items-center justify-between">
+                    <span>{category}</span>
+                    <span className="text-sm text-neutral-400 font-normal">
+                      {productsInCategory.length} producto{productsInCategory.length !== 1 ? 's' : ''}
+                    </span>
                   </h2>
                 )}
                 

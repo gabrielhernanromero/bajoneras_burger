@@ -1,5 +1,5 @@
 
-export type Category = 'Combos' | 'Burgers' | 'Postres' | 'Bebidas';
+export type Category = string; // Ahora las categorías son dinámicas
 
 export interface Extra {
   id: string;

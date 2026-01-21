@@ -357,7 +357,7 @@ export default function App() {
   const [cart, setCart] = useState<CartItem[]>([]);
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [activeCategory, setActiveCategory] = useState<Category | 'Todos'>('Todos');
+  const [activeCategory, setActiveCategory] = useState<string>('Todos');
   const [lastAdded, setLastAdded] = useState<string | null>(null);
   const [customizingProduct, setCustomizingProduct] = useState<Product | null>(null);
   const [customizingCombo, setCustomizingCombo] = useState<Product | null>(null);
@@ -377,14 +377,18 @@ export default function App() {
     return PRODUCTS;
   });
   
+  // Obtener categorías dinámicas de los productos
+  const categories = useMemo(() => 
+    ['Todos', ...Array.from(new Set(products.map(p => p.category as string)))],
+    [products]
+  );
+  
   // Estados del checkout stepper
   const [checkoutStep, setCheckoutStep] = useState(0); // 0: Carrito, 1: Datos, 2: Logística
   const [customerName, setCustomerName] = useState('');
   const [customerAddress, setCustomerAddress] = useState('');
   const [paymentMethod, setPaymentMethod] = useState<'efectivo' | 'transferencia'>('efectivo');
   const [deliveryMethod, setDeliveryMethod] = useState<'delivery' | 'retiro'>('delivery');
-
-  const categories: (Category | 'Todos')[] = ['Todos', 'Combos', 'Burgers', 'Postres'];
 
   const filteredProducts = useMemo(() => {
     if (activeCategory === 'Todos') return products;
