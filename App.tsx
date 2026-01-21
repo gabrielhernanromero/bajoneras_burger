@@ -363,7 +363,19 @@ export default function App() {
   const [customizingCombo, setCustomizingCombo] = useState<Product | null>(null);
   const [comboCarouselIndex, setComboCarouselIndex] = useState(0);
   const [showAdminPanel, setShowAdminPanel] = useState(false);
-  const [products, setProducts] = useState<Product[]>(PRODUCTS);
+  
+  // Cargar productos desde localStorage o usar los valores por defecto
+  const [products, setProducts] = useState<Product[]>(() => {
+    try {
+      const savedProducts = localStorage.getItem('bajoneras_products');
+      if (savedProducts) {
+        return JSON.parse(savedProducts);
+      }
+    } catch (error) {
+      console.error('Error cargando productos desde localStorage:', error);
+    }
+    return PRODUCTS;
+  });
   
   // Estados del checkout stepper
   const [checkoutStep, setCheckoutStep] = useState(0); // 0: Carrito, 1: Datos, 2: Logística
@@ -1433,8 +1445,43 @@ export default function App() {
           products={products} 
           onClose={() => setShowAdminPanel(false)} 
           onSave={(updatedProducts) => {
-            setProducts(updatedProducts);
-            setShowAdminPanel(false);
+            try {
+              const dataString = JSON.stringify(updatedProducts);
+              const sizeInMB = new Blob([dataString]).size / (1024 * 1024);
+              
+              // Verificar si excede el límite de localStorage (aprox 5-10MB)
+              if (sizeInMB > 5) {
+                alert(`⚠️ ADVERTENCIA: Los datos ocupan ${sizeInMB.toFixed(2)}MB.\n\n` +
+                      `Las imágenes base64 son muy pesadas. Se recomienda:\n` +
+                      `1. Usar URLs de imágenes en lugar de archivos\n` +
+                      `2. Subir las imágenes a un servidor/hosting\n` +
+                      `3. Usar imágenes más pequeñas\n\n` +
+                      `De todas formas se intentará guardar...`);
+              }
+              
+              // Guardar en localStorage
+              localStorage.setItem('bajoneras_products', dataString);
+              setProducts(updatedProducts);
+              setShowAdminPanel(false);
+              alert(`✅ Cambios guardados exitosamente!\n\nDatos: ${sizeInMB.toFixed(2)}MB\nLos datos son ahora persistentes en toda la aplicación.`);
+            } catch (error) {
+              console.error('Error guardando productos:', error);
+              
+              // Mensaje de error más específico
+              let errorMsg = '❌ Error al guardar los cambios.\n\n';
+              if (error instanceof Error && error.name === 'QuotaExceededError') {
+                errorMsg += 'PROBLEMA: El tamaño de los datos excede el límite de almacenamiento del navegador.\n\n' +
+                           'SOLUCIONES:\n' +
+                           '1. Usa URLs de imágenes en lugar de subir archivos\n' +
+                           '2. Reduce el número de productos con imágenes grandes\n' +
+                           '3. Comprime las imágenes antes de subirlas\n\n' +
+                           'TIP: Las imágenes base64 pueden ser 30% más grandes que el archivo original.';
+              } else {
+                errorMsg += `Detalles: ${error instanceof Error ? error.message : 'Error desconocido'}\n\n` +
+                           'Intenta de nuevo o contacta al desarrollador.';
+              }
+              alert(errorMsg);
+            }
           }}
         />
       )}

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, Edit2, Save, Trash2, Plus, Eye, EyeOff } from 'lucide-react';
+import { X, Edit2, Save, Trash2, Plus, Eye, EyeOff, RotateCcw } from 'lucide-react';
 import { Product } from './types';
 
 interface AdminPanelProps {
@@ -16,6 +16,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ products, onClose, onSave }) =>
   const [showPassword, setShowPassword] = useState(false);
   const [showJsonCode, setShowJsonCode] = useState(false);
   const [dragActive, setDragActive] = useState(false);
+  const [selectedCategory, setSelectedCategory] = useState<string>('Todos');
 
   const ADMIN_PASSWORD = 'burger2024'; // Cambiar esta contraseña
 
@@ -29,13 +30,122 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ products, onClose, onSave }) =>
     }
   };
 
-  const handleImageFile = (file: File, index: number) => {
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      const result = e.target?.result as string;
-      handleEditProduct(index, 'image', result);
-    };
-    reader.readAsDataURL(file);
+  const compressImage = (file: File, maxSizeMB: number = 1): Promise<File> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = (event) => {
+        const img = new Image();
+        img.src = event.target?.result as string;
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          let width = img.width;
+          let height = img.height;
+          
+          // Redimensionar si es muy grande (máximo 1920px de ancho)
+          const maxWidth = 1920;
+          if (width > maxWidth) {
+            height = (height * maxWidth) / width;
+            width = maxWidth;
+          }
+          
+          canvas.width = width;
+          canvas.height = height;
+          
+          const ctx = canvas.getContext('2d');
+          ctx?.drawImage(img, 0, 0, width, height);
+          
+          // Comprimir con calidad reducida
+          let quality = 0.8;
+          
+          const tryCompress = () => {
+            canvas.toBlob(
+              (blob) => {
+                if (!blob) {
+                  reject(new Error('Error al comprimir la imagen'));
+                  return;
+                }
+                
+                const compressedSize = blob.size / (1024 * 1024);
+                
+                // Si aún es muy grande, reducir más la calidad
+                if (compressedSize > maxSizeMB && quality > 0.1) {
+                  quality -= 0.1;
+                  tryCompress();
+                } else {
+                  const compressedFile = new File([blob], file.name, {
+                    type: 'image/jpeg',
+                    lastModified: Date.now()
+                  });
+                  resolve(compressedFile);
+                }
+              },
+              'image/jpeg',
+              quality
+            );
+          };
+          
+          tryCompress();
+        };
+        img.onerror = () => reject(new Error('Error al cargar la imagen'));
+      };
+      reader.onerror = () => reject(new Error('Error al leer el archivo'));
+    });
+  };
+
+  const handleImageFile = async (file: File, index: number) => {
+    try {
+      const originalSizeMB = file.size / (1024 * 1024);
+      const productCategory = editedProducts[index].category.toLowerCase();
+      
+      let fileToUpload = file;
+      
+      // Si la imagen es muy grande, comprimirla automáticamente
+      if (originalSizeMB > 1) {
+        alert(`⏳ Comprimiendo imagen (${originalSizeMB.toFixed(2)}MB)...\n\nEspera un momento...`);
+        
+        try {
+          fileToUpload = await compressImage(file, 1);
+          const compressedSizeMB = fileToUpload.size / (1024 * 1024);
+          console.log(`Imagen comprimida: ${originalSizeMB.toFixed(2)}MB → ${compressedSizeMB.toFixed(2)}MB`);
+        } catch (compressError) {
+          console.error('Error al comprimir:', compressError);
+          alert('⚠️ No se pudo comprimir automáticamente. Se intentará subir la imagen original.');
+        }
+      }
+      
+      // Crear FormData para enviar la imagen
+      const formData = new FormData();
+      formData.append('image', fileToUpload);
+      formData.append('category', productCategory);
+      
+      // Subir imagen al servidor
+      const response = await fetch('http://localhost:3002/api/upload', {
+        method: 'POST',
+        body: formData
+      });
+      
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Error al subir la imagen');
+      }
+      
+      const data = await response.json();
+      
+      // Actualizar el producto con la URL de la imagen
+      handleEditProduct(index, 'image', data.url);
+      
+      const finalSizeMB = fileToUpload.size / (1024 * 1024);
+      const compressionInfo = originalSizeMB > 1 
+        ? `\n\n📊 Original: ${originalSizeMB.toFixed(2)}MB → Comprimida: ${finalSizeMB.toFixed(2)}MB`
+        : '';
+      
+      alert(`✅ Imagen subida exitosamente!${compressionInfo}\n\nGuardada en: public${data.url}\nAhora haz click en "GUARDAR CAMBIOS" para que sea permanente.`);
+      
+    } catch (error) {
+      console.error('Error al subir imagen:', error);
+      alert(`❌ Error al subir la imagen:\n\n${error instanceof Error ? error.message : 'Error desconocido'}\n\nAsegúrate de que el servidor esté corriendo (npm start).`);
+    }
   };
 
   const handleDrag = (e: React.DragEvent) => {
@@ -80,16 +190,18 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ products, onClose, onSave }) =>
   };
 
   const handleAddProduct = () => {
+    const category = selectedCategory === 'Todos' ? 'Combos' : selectedCategory;
     const newProduct: Product = {
       id: `product-${Date.now()}`,
       name: 'Nuevo Producto',
       description: 'Descripción del producto',
       price: 0,
       image: '/placeholder.jpg',
-      category: 'Burgers'
+      category: category as any
     };
     setEditedProducts([...editedProducts, newProduct]);
     setEditingIndex(editedProducts.length);
+    setSelectedCategory(category);
   };
 
   const generateJsonCode = () => {
@@ -98,7 +210,13 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ products, onClose, onSave }) =>
 
   const handleSave = () => {
     onSave(editedProducts);
-    alert('Productos actualizados. Copia el código JSON generado y reemplázalo en data.ts');
+  };
+
+  const handleReset = () => {
+    if (confirm('¿Estás seguro de que quieres restablecer todos los productos a los valores originales? Se perderán todos los cambios guardados.')) {
+      localStorage.removeItem('bajoneras_products');
+      window.location.reload();
+    }
   };
 
   if (!isAuthenticated) {
@@ -161,7 +279,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ products, onClose, onSave }) =>
         </div>
 
         {/* Botones de acción */}
-        <div className="flex gap-4 mb-6">
+        <div className="flex gap-4 mb-6 flex-wrap">
           <button
             onClick={handleAddProduct}
             className="bg-green-600 text-white px-6 py-3 rounded-lg font-bold flex items-center gap-2 hover:bg-green-700 transition"
@@ -180,12 +298,36 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ products, onClose, onSave }) =>
           >
             <Save size={20} /> GUARDAR CAMBIOS
           </button>
+          <button
+            onClick={handleReset}
+            className="bg-red-600 text-white px-6 py-3 rounded-lg font-bold flex items-center gap-2 hover:bg-red-700 transition"
+          >
+            <RotateCcw size={20} /> RESETEAR A ORIGINAL
+          </button>
         </div>
 
         {/* Código JSON */}
         {showJsonCode && (
           <div className="bg-neutral-800 rounded-lg p-6 mb-6 border-2 border-blue-400">
-            <h3 className="text-blue-400 font-bold mb-3 text-sm">CÓDIGO PARA data.ts:</h3>
+            <div className="mb-4 bg-green-400/10 border border-green-400/30 rounded-lg p-4">
+              <h4 className="text-green-400 font-bold text-sm mb-2">✅ SISTEMA DE SUBIDA AUTOMÁTICA ACTIVADO</h4>
+              <p className="text-neutral-300 text-xs leading-relaxed mb-3">
+                <strong>¡Ahora es súper fácil!</strong>
+                <br/>
+                1. Arrastra o selecciona una imagen desde tu PC
+                <br/>
+                2. La imagen se sube automáticamente a la carpeta correcta
+                <br/>
+                3. Haz click en "GUARDAR CAMBIOS"
+                <br/>
+                4. ¡Listo! La imagen queda guardada permanentemente
+              </p>
+              <p className="text-neutral-400 text-xs">
+                <strong>Nota:</strong> Asegúrate de iniciar la app con <code className="bg-black/30 px-2 py-1 rounded">npm start</code> 
+                para que el servidor de subida funcione.
+              </p>
+            </div>
+            <h3 className="text-blue-400 font-bold mb-3 text-sm">CÓDIGO PARA data.ts (Backup Manual):</h3>
             <pre className="bg-black p-4 rounded text-xs text-green-400 overflow-x-auto border border-green-400">
               {generateJsonCode()}
             </pre>
@@ -201,11 +343,60 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ products, onClose, onSave }) =>
           </div>
         )}
 
-        {/* Productos */}
-        <div className="space-y-4">
-          {editedProducts.map((product, index) => (
-            <div key={product.id} className="bg-neutral-800 border-2 border-yellow-400 rounded-lg p-6">
-              {editingIndex === index ? (
+        {/* Filtro por categoría */}
+        <div className="mb-6 flex gap-3 flex-wrap">
+          {['Todos', 'Combos', 'Burgers', 'Postres', 'Bebidas'].map((category) => {
+            const count = category === 'Todos' 
+              ? editedProducts.length 
+              : editedProducts.filter(p => p.category === category).length;
+            
+            return (
+              <button
+                key={category}
+                onClick={() => setSelectedCategory(category)}
+                className={`px-6 py-3 rounded-lg font-bold transition relative ${
+                  selectedCategory === category
+                    ? 'bg-yellow-400 text-black'
+                    : 'bg-neutral-700 text-white hover:bg-neutral-600'
+                }`}
+              >
+                {category}
+                <span className={`ml-2 text-xs px-2 py-1 rounded-full ${
+                  selectedCategory === category
+                    ? 'bg-black text-yellow-400'
+                    : 'bg-neutral-800 text-neutral-400'
+                }`}>
+                  {count}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Productos organizados por categoría */}
+        <div className="space-y-8">
+          {['Combos', 'Burgers', 'Postres', 'Bebidas'].map((category) => {
+            const productsInCategory = editedProducts.filter(p => 
+              selectedCategory === 'Todos' ? p.category === category : p.category === selectedCategory
+            );
+            
+            if (productsInCategory.length === 0 && selectedCategory !== 'Todos') return null;
+            if (productsInCategory.length === 0 && selectedCategory === 'Todos') return null;
+            
+            return (
+              <div key={category}>
+                {selectedCategory === 'Todos' && (
+                  <h2 className="font-bebas text-3xl text-yellow-400 mb-4 border-b-2 border-yellow-400 pb-2">
+                    {category}
+                  </h2>
+                )}
+                
+                <div className="space-y-4">
+                  {productsInCategory.map((product) => {
+                    const index = editedProducts.findIndex(p => p.id === product.id);
+                    return (
+                      <div key={product.id} className="bg-neutral-800 border-2 border-yellow-400 rounded-lg p-6">
+                        {editingIndex === index ? (
                 <div className="space-y-4">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
@@ -301,7 +492,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ products, onClose, onSave }) =>
                     </button>
                   </div>
                 </div>
-              ) : (
+                        ) : (
                 <div className="flex justify-between items-start">
                   <div className="flex-1">
                     <h3 className="text-yellow-400 font-bold text-xl">{product.name}</h3>
@@ -326,9 +517,14 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ products, onClose, onSave }) =>
                     </button>
                   </div>
                 </div>
-              )}
-            </div>
-          ))}
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            );
+          })}
         </div>
       </div>
     </div>
