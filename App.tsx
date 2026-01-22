@@ -946,6 +946,16 @@ export default function App() {
                                 {item.comboBurgers && item.comboBurgers.length > 0 && (
                                   <div className="mb-3 space-y-2 bg-black/30 p-3 rounded-lg border border-yellow-400/20">
                                     <p className="text-xs font-bold text-yellow-400 uppercase tracking-wide mb-2">📋 Tu Combo incluye:</p>
+                                    {item.id === 'combo-bajonero-individual' && (
+                                      <p className="text-[11px] font-black text-orange-300">
+                                        Incluye 1 Chocotorta chica 🍰
+                                      </p>
+                                    )}
+                                    {item.id === 'combo-bajonero-compartir' && (
+                                      <p className="text-[11px] font-black text-orange-300">
+                                        Incluye 1 Chocotorta grande 🍰
+                                      </p>
+                                    )}
                                     {item.comboBurgers.map((burger, idx) => (
                                       <div key={idx} className="text-xs">
                                         <p className="text-white font-black">• {burger.burger.name}</p>
