@@ -1,6 +1,6 @@
 
 import React, { useState, useMemo, useEffect } from 'react';
-import { ShoppingCart, Send, Plus, Minus, X, Menu, MessageCircle, Instagram, Check, User, MapPin, Truck, Store, CreditCard, Banknote, Receipt, MessageSquare, Settings } from 'lucide-react';
+import { ShoppingCart, Send, Plus, Minus, X, Menu, Phone, Instagram, Check, User, MapPin, Truck, Store, CreditCard, Banknote, Receipt, MessageSquare, Settings } from 'lucide-react';
 import { PRODUCTS, SHOP_SETTINGS } from './data';
 import { Product, CartItem, Category, Extra, ComboburgerSelection } from './types';
 import AdminPanel from './AdminPanel';
@@ -1406,7 +1406,7 @@ export default function App() {
 
           <div className="flex gap-10 sm:gap-16">
             <a href={`https://instagram.com/${SHOP_SETTINGS.instagramHandle}`} target="_blank" rel="noopener noreferrer" className="p-6 sm:p-10 bg-neutral-900 rounded-[2rem] sm:rounded-[3rem] hover:bg-yellow-400 hover:text-black transition-all hover:-translate-y-4 shadow-2xl border border-white/5" title="Síguenos en Instagram"><Instagram size={40} /></a>
-            <a href={`https://wa.me/${SHOP_SETTINGS.whatsappNumber}`} target="_blank" rel="noopener noreferrer" className="p-6 sm:p-10 bg-neutral-900 rounded-[2rem] sm:rounded-[3rem] hover:bg-green-500 hover:text-black transition-all hover:-translate-y-4 shadow-2xl border border-white/5" title="Contactanos por WhatsApp" onClick={() => alert('🟢 ¡Abriendo WhatsApp!\n\nEscribinos en WhatsApp para hacer tu pedido, consultar horarios o cualquier otra duda.\n\n¡Te estamos esperando con tu bajón favorito!')}><MessageCircle size={40} /></a>
+            <a href={`https://wa.me/${SHOP_SETTINGS.whatsappNumber}`} target="_blank" rel="noopener noreferrer" className="p-6 sm:p-10 bg-neutral-900 rounded-[2rem] sm:rounded-[3rem] hover:bg-green-500 hover:text-black transition-all hover:-translate-y-4 shadow-2xl border border-white/5" title="Contactanos por WhatsApp" onClick={() => alert('🟢 ¡Abriendo WhatsApp!\n\nEscribinos en WhatsApp para hacer tu pedido, consultar horarios o cualquier otra duda.\n\n¡Te estamos esperando con tu bajón favorito!')}><Phone size={40} /></a>
           </div>
           <p className="text-neutral-500 text-2xl sm:text-4xl italic font-light max-w-3xl leading-snug px-4">
             "Marge, no te voy a mentir... <br className="hidden sm:block"/> ¡Quiero otra hamburguesa!"
