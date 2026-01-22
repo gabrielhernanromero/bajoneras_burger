@@ -1110,7 +1110,7 @@ export default function App() {
                           <MapPin size={18} strokeWidth={3} />
                         </div>
                         <span>Entre Calles</span>
-                        <span className="text-neutral-500 text-xs normal-case font-normal">(Opcional)</span>
+                        <span className="text-red-500 text-2xl leading-none">*</span>
                       </label>
                       <div className="relative">
                         <input 
@@ -1294,6 +1294,29 @@ export default function App() {
                                     <span className="font-black text-lg">{item.quantity}x</span>
                                     <div className="flex-1">
                                       <p className="font-black text-sm uppercase leading-tight">{item.name}</p>
+                                      
+                                      {/* Mostrar hamburguesas del combo */}
+                                      {item.comboBurgers && item.comboBurgers.length > 0 && (
+                                        <div className="mt-2 bg-orange-50 p-2 rounded border border-orange-200">
+                                          <p className="text-[10px] font-bold text-orange-700 uppercase mb-1">🍔 Hamburguesas:</p>
+                                          {item.comboBurgers.map((burger, idx) => (
+                                            <div key={idx} className="text-xs text-neutral-700 mb-1">
+                                              <p className="font-bold">• {burger.burger.name}</p>
+                                              {burger.extras && burger.extras.length > 0 && (
+                                                <p className="text-[10px] text-neutral-600 ml-2">
+                                                  Extras: {burger.extras.map(e => e.name).join(', ')}
+                                                </p>
+                                              )}
+                                              {burger.notes && (
+                                                <p className="text-[10px] text-neutral-600 italic ml-2">
+                                                  Obs: {burger.notes}
+                                                </p>
+                                              )}
+                                            </div>
+                                          ))}
+                                        </div>
+                                      )}
+                                      
                                       {item.selectedExtras && item.selectedExtras.length > 0 && (
                                         <div className="mt-1 space-y-1">
                                           {item.selectedExtras.map(extra => (
@@ -1380,17 +1403,17 @@ export default function App() {
                     onClick={() => {
                       if (checkoutStep === 0 && cart.length > 0) {
                         setCheckoutStep(1);
-                      } else if (checkoutStep === 1 && customerName.trim() && customerAddress.trim()) {
+                      } else if (checkoutStep === 1 && customerName.trim() && customerAddress.trim() && customerBetweenStreets.trim()) {
                         setCheckoutStep(2);
                       }
                     }}
                     disabled={
                       (checkoutStep === 0 && cart.length === 0) || 
-                      (checkoutStep === 1 && (!customerName.trim() || !customerAddress.trim()))
+                      (checkoutStep === 1 && (!customerName.trim() || !customerAddress.trim() || !customerBetweenStreets.trim()))
                     }
                     className={`flex-1 py-5 rounded-2xl font-black text-lg sm:text-xl uppercase tracking-wide transition-all ${
                       (checkoutStep === 0 && cart.length === 0) || 
-                      (checkoutStep === 1 && (!customerName.trim() || !customerAddress.trim()))
+                      (checkoutStep === 1 && (!customerName.trim() || !customerAddress.trim() || !customerBetweenStreets.trim()))
                         ? 'bg-neutral-800 text-neutral-600 cursor-not-allowed opacity-50'
                         : 'bg-yellow-400 text-black hover:bg-yellow-300 active:scale-95 shadow-lg'
                     }`}
