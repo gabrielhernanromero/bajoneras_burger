@@ -45,8 +45,10 @@ export const PRODUCTS: Product[] = [
     isPopular: true,
     extras: [
       { id: "extra-bacon", name: "Bacon Extra", price: 1500 },
-      { id: "extra-cheddar", name: "Doble Cheddar", price: 1000 },
-      { id: "extra-huevo", name: "Huevo Frito", price: 800 }
+      { id: "extra-cheddar", name: "Queso Cheddar", price: 1500 },
+      { id: "extra-medallon-120", name: "Medallón 120 g", price: 3000 },
+      { id: "extra-cheddar-bacon-papas", name: "Cheddar y Bacon en Papas", price: 4000 },
+      { id: "extra-huevo", name: "Huevo Frito", price: 1000 }
     ]
   },
   {
@@ -59,8 +61,10 @@ export const PRODUCTS: Product[] = [
     isPopular: true,
     extras: [
       { id: "extra-bacon", name: "Bacon Extra", price: 1500 },
-      { id: "extra-cheddar", name: "Doble Cheddar", price: 1000 },
-      { id: "extra-cebolla-caramelizada", name: "Cebolla Caramelizada", price: 700 }
+      { id: "extra-cheddar", name: "Queso Cheddar", price: 1500 },
+      { id: "extra-medallon-120", name: "Medallón 120 g", price: 3000 },
+      { id: "extra-cheddar-bacon-papas", name: "Cheddar y Bacon en Papas", price: 4000 },
+      { id: "extra-huevo", name: "Huevo Frito", price: 1000 }
     ]
   },
   {
@@ -72,8 +76,10 @@ export const PRODUCTS: Product[] = [
     category: "Burgers",
     extras: [
       { id: "extra-bacon", name: "Bacon Extra", price: 1500 },
-      { id: "extra-cheddar", name: "Doble Cheddar", price: 1000 },
-      { id: "extra-huevo", name: "Huevo Frito", price: 800 }
+      { id: "extra-cheddar", name: "Queso Cheddar", price: 1500 },
+      { id: "extra-medallon-120", name: "Medallón 120 g", price: 3000 },
+      { id: "extra-cheddar-bacon-papas", name: "Cheddar y Bacon en Papas", price: 4000 },
+      { id: "extra-huevo", name: "Huevo Frito", price: 1000 }
     ]
   },
   {
