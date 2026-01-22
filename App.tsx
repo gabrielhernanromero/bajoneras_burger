@@ -410,6 +410,7 @@ export default function App() {
   const [checkoutStep, setCheckoutStep] = useState(0); // 0: Carrito, 1: Datos, 2: Logística
   const [customerName, setCustomerName] = useState('');
   const [customerAddress, setCustomerAddress] = useState('');
+  const [customerBetweenStreets, setCustomerBetweenStreets] = useState('');
   const [paymentMethod, setPaymentMethod] = useState<'efectivo' | 'transferencia'>('efectivo');
   const [deliveryMethod, setDeliveryMethod] = useState<'delivery' | 'retiro'>('delivery');
 
@@ -553,7 +554,8 @@ export default function App() {
     const message = `Hola Bajoneras! 👋 Quiero confirmar este pedido de la web:%0A%0A` +
       `🧾 *Pedido N° ${orderId}*%0A` +
       `👤 *${customerName}*%0A` +
-      `📍 *${customerAddress}*%0A%0A` +
+      `📍 *${customerAddress}*%0A` +
+      (customerBetweenStreets ? `Entre calles: ${customerBetweenStreets}%0A%0A` : `%0A%0A`) +
       
       `🛒 *DETALLE:*%0A%0A` +
       `${productsList}%0A%0A` +
@@ -574,6 +576,7 @@ export default function App() {
     setCheckoutStep(0);
     setCustomerName('');
     setCustomerAddress('');
+    setCustomerBetweenStreets('');
     setPaymentMethod('efectivo');
     setDeliveryMethod('delivery');
   };
@@ -1100,6 +1103,31 @@ export default function App() {
                       </p>
                     </div>
 
+                    {/* Input de Entre Calles */}
+                    <div className="group">
+                      <label className="flex items-center gap-2 text-white text-sm sm:text-base font-black mb-2 uppercase tracking-wide">
+                        <div className="w-8 h-8 bg-yellow-400 rounded-lg flex items-center justify-center text-black">
+                          <MapPin size={18} strokeWidth={3} />
+                        </div>
+                        <span>Entre Calles</span>
+                        <span className="text-neutral-500 text-xs normal-case font-normal">(Opcional)</span>
+                      </label>
+                      <div className="relative">
+                        <input 
+                          type="text"
+                          value={customerBetweenStreets}
+                          onChange={(e) => setCustomerBetweenStreets(e.target.value)}
+                          placeholder="Ej: Entre Av. Los Andes y Calle Principal"
+                          className="w-full bg-gradient-to-br from-neutral-800 to-neutral-900 border-3 border-white/20 rounded-xl px-4 py-3 text-white text-lg sm:text-xl font-bold placeholder:text-neutral-600 focus:border-yellow-400 focus:shadow-[0_0_30px_rgba(250,204,21,0.3)] focus:outline-none transition-all duration-300"
+                        />
+                        {customerBetweenStreets && (
+                          <div className="absolute right-3 top-1/2 -translate-y-1/2 text-green-500">
+                            <Check size={24} strokeWidth={3} />
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
                     {/* Método de Pago */}
                     <div>
                       <label className="flex items-center gap-2 text-white text-sm sm:text-base font-black mb-2 uppercase tracking-wide">
@@ -1233,6 +1261,12 @@ export default function App() {
                           <span className="text-neutral-600 font-bold">Dirección:</span>
                           <span className="font-black text-right max-w-[60%]">{customerAddress}</span>
                         </div>
+                        {customerBetweenStreets && (
+                          <div className="flex justify-between">
+                            <span className="text-neutral-600 font-bold">Entre calles:</span>
+                            <span className="font-black text-right max-w-[60%]">{customerBetweenStreets}</span>
+                          </div>
+                        )}
                         <div className="flex justify-between">
                           <span className="text-neutral-600 font-bold">Pago:</span>
                           <span className="font-black uppercase">{paymentMethod === 'efectivo' ? '💵 EFECTIVO' : '💳 TRANSFERENCIA'}</span>
