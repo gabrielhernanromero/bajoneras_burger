@@ -3,8 +3,8 @@ import { Product } from './types';
 
 export const SHOP_SETTINGS = {
   name: "Bajoneras Burger",
-  whatsappNumber: "5491154661480", // Reemplazar con el número real
-  instagramHandle: "bajoneras_burger", // Usuario de Instagram
+  whatsappNumber: "541128422773", // +54 11 2842-2773
+  instagramHandle: "bajoneras.burgeer", // Usuario de Instagram
   currency: "$",
   deliveryFee: 0,
   freeDeliveryText: "ENVÍO GRATIS",
