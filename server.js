@@ -61,6 +61,50 @@ const upload = multer({
   limits: { fileSize: 5 * 1024 * 1024 } // Límite de 5MB
 });
 
+// Rutas para productos (persistencia de datos)
+const PRODUCTS_PATH = path.join(__dirname, 'products.json');
+
+// Cargar productos desde products.json
+app.get('/api/products', (req, res) => {
+  try {
+    if (fs.existsSync(PRODUCTS_PATH)) {
+      const data = fs.readFileSync(PRODUCTS_PATH, 'utf-8');
+      const products = JSON.parse(data);
+      res.json(products);
+    } else {
+      // Si no existe el archivo, retornar array vacío
+      res.json([]);
+    }
+  } catch (error) {
+    console.error('Error al cargar productos:', error);
+    res.status(500).json({ error: 'Error al cargar productos' });
+  }
+});
+
+// Guardar productos en products.json
+app.post('/api/products/save', express.json({ limit: '50mb' }), (req, res) => {
+  try {
+    const products = req.body;
+    
+    if (!Array.isArray(products)) {
+      return res.status(400).json({ error: 'Los datos deben ser un array de productos' });
+    }
+
+    // Escribir en products.json
+    fs.writeFileSync(PRODUCTS_PATH, JSON.stringify(products, null, 2), 'utf-8');
+    
+    console.log(`✅ ${products.length} productos guardados en products.json`);
+    res.json({
+      success: true,
+      message: 'Productos guardados exitosamente',
+      count: products.length
+    });
+  } catch (error) {
+    console.error('Error al guardar productos:', error);
+    res.status(500).json({ error: 'Error al guardar productos' });
+  }
+});
+
 // Endpoint para subir imágenes
 app.post('/api/upload', upload.single('image'), (req, res) => {
   try {

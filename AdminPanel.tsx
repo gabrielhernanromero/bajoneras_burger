@@ -248,8 +248,31 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ products, onClose, onSave }) =>
     return `export const PRODUCTS: Product[] = ${JSON.stringify(editedProducts, null, 2)};`;
   };
 
-  const handleSave = () => {
-    onSave(editedProducts);
+  const handleSave = async () => {
+    try {
+      // Guardar en el servidor
+      const response = await fetch('http://localhost:3002/api/products/save', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(editedProducts)
+      });
+
+      if (!response.ok) {
+        throw new Error('Error al guardar productos');
+      }
+
+      const result = await response.json();
+      console.log('✅ Productos guardados en servidor:', result);
+      
+      // También llamar al callback
+      onSave(editedProducts);
+      alert('✅ Cambios guardados exitosamente');
+    } catch (error) {
+      console.error('Error al guardar:', error);
+      alert('❌ Error al guardar cambios. Verifica que el servidor esté corriendo.');
+    }
   };
 
   const handleReset = () => {

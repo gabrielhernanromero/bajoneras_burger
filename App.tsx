@@ -364,7 +364,7 @@ export default function App() {
   const [comboCarouselIndex, setComboCarouselIndex] = useState(0);
   const [showAdminPanel, setShowAdminPanel] = useState(false);
   
-  // Cargar productos desde localStorage o usar los valores por defecto
+  // Cargar productos desde el servidor o usar los valores por defecto
   const [products, setProducts] = useState<Product[]>(() => {
     try {
       const savedProducts = localStorage.getItem('bajoneras_products');
@@ -376,6 +376,27 @@ export default function App() {
     }
     return PRODUCTS;
   });
+
+  // Efecto para cargar productos desde el servidor al montar
+  useEffect(() => {
+    const loadProductsFromServer = async () => {
+      try {
+        const response = await fetch('http://localhost:3002/api/products');
+        if (response.ok) {
+          const serverProducts = await response.json();
+          if (serverProducts && serverProducts.length > 0) {
+            setProducts(serverProducts);
+            console.log('✅ Productos cargados desde servidor:', serverProducts.length);
+            return;
+          }
+        }
+      } catch (error) {
+        console.warn('No se pudo cargar productos del servidor, usando datos locales:', error);
+      }
+    };
+
+    loadProductsFromServer();
+  }, []);
   
   // Obtener categorías dinámicas de los productos
   const categories = useMemo(() => 
