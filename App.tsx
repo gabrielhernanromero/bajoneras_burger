@@ -725,45 +725,41 @@ export default function App() {
           <section className="animate-fade-in scroll-mt-28" id="combos-carousel">
             <SectionHeading title="COMBOS" />
             <div className="relative">
-              {/* Carrusel Container */}
-              <div className="flex items-center justify-center gap-4 sm:gap-8">
-                {/* Botón Anterior */}
-                <button
-                  onClick={() => {
-                    const combosCount = products.filter(p => p.category === 'Combos').length;
-                    setComboCarouselIndex((prev) => (prev - 1 + combosCount) % combosCount);
-                  }}
-                  className="flex-shrink-0 p-3 sm:p-4 bg-yellow-400 hover:bg-white text-black rounded-full transition-all hover:scale-110 active:scale-90 shadow-lg"
-                >
-                  <svg className="w-5 h-5 sm:w-6 sm:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M15 19l-7-7 7-7" />
-                  </svg>
-                </button>
-
-                {/* Carrusel Items */}
-                <div className="flex-1 overflow-hidden">
-                  <div className="flex transition-transform duration-500 ease-out" style={{ transform: `translateX(-${comboCarouselIndex * 100}%)` }}>
-                    {products.filter(p => p.category === 'Combos').map(product => (
-                      <div key={product.id} className="w-full flex-shrink-0">
-                        <ProductCard product={product} onAdd={handleAddToCart} isAnimating={lastAdded === product.id} />
-                      </div>
-                    ))}
-                  </div>
+              {/* Carrusel Items */}
+              <div className="overflow-hidden">
+                <div className="flex transition-transform duration-500 ease-out" style={{ transform: `translateX(-${comboCarouselIndex * 100}%)` }}>
+                  {products.filter(p => p.category === 'Combos').map(product => (
+                    <div key={product.id} className="w-full flex-shrink-0">
+                      <ProductCard product={product} onAdd={handleAddToCart} isAnimating={lastAdded === product.id} />
+                    </div>
+                  ))}
                 </div>
-
-                {/* Botón Siguiente */}
-                <button
-                  onClick={() => {
-                    const combosCount = products.filter(p => p.category === 'Combos').length;
-                    setComboCarouselIndex((prev) => (prev + 1) % combosCount);
-                  }}
-                  className="flex-shrink-0 p-3 sm:p-4 bg-yellow-400 hover:bg-white text-black rounded-full transition-all hover:scale-110 active:scale-90 shadow-lg"
-                >
-                  <svg className="w-5 h-5 sm:w-6 sm:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M9 5l7 7-7 7" />
-                  </svg>
-                </button>
               </div>
+
+              {/* Botones de navegación - Posicionados absolutamente */}
+              <button
+                onClick={() => {
+                  const combosCount = products.filter(p => p.category === 'Combos').length;
+                  setComboCarouselIndex((prev) => (prev - 1 + combosCount) % combosCount);
+                }}
+                className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-2 sm:-translate-x-4 z-10 p-3 sm:p-4 bg-yellow-400 hover:bg-white text-black rounded-full transition-all hover:scale-110 active:scale-90 shadow-lg"
+              >
+                <svg className="w-5 h-5 sm:w-6 sm:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M15 19l-7-7 7-7" />
+                </svg>
+              </button>
+
+              <button
+                onClick={() => {
+                  const combosCount = products.filter(p => p.category === 'Combos').length;
+                  setComboCarouselIndex((prev) => (prev + 1) % combosCount);
+                }}
+                className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-2 sm:translate-x-4 z-10 p-3 sm:p-4 bg-yellow-400 hover:bg-white text-black rounded-full transition-all hover:scale-110 active:scale-90 shadow-lg"
+              >
+                <svg className="w-5 h-5 sm:w-6 sm:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M9 5l7 7-7 7" />
+                </svg>
+              </button>
 
               {/* Indicadores de página */}
               <div className="flex justify-center gap-2 sm:gap-3 mt-6 sm:mt-8">
