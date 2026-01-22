@@ -1405,8 +1405,8 @@ export default function App() {
           </div>
 
           <div className="flex gap-10 sm:gap-16">
-            <a href="#" className="p-6 sm:p-10 bg-neutral-900 rounded-[2rem] sm:rounded-[3rem] hover:bg-yellow-400 hover:text-black transition-all hover:-translate-y-4 shadow-2xl border border-white/5"><Instagram size={40} /></a>
-            <a href={`https://wa.me/${SHOP_SETTINGS.whatsappNumber}`} className="p-6 sm:p-10 bg-neutral-900 rounded-[2rem] sm:rounded-[3rem] hover:bg-green-500 hover:text-black transition-all hover:-translate-y-4 shadow-2xl border border-white/5"><Phone size={40} /></a>
+            <a href={`https://instagram.com/${SHOP_SETTINGS.instagramHandle}`} target="_blank" rel="noopener noreferrer" className="p-6 sm:p-10 bg-neutral-900 rounded-[2rem] sm:rounded-[3rem] hover:bg-yellow-400 hover:text-black transition-all hover:-translate-y-4 shadow-2xl border border-white/5"><Instagram size={40} /></a>
+            <a href={`https://wa.me/${SHOP_SETTINGS.whatsappNumber}`} target="_blank" rel="noopener noreferrer" className="p-6 sm:p-10 bg-neutral-900 rounded-[2rem] sm:rounded-[3rem] hover:bg-green-500 hover:text-black transition-all hover:-translate-y-4 shadow-2xl border border-white/5"><Phone size={40} /></a>
           </div>
           <p className="text-neutral-500 text-2xl sm:text-4xl italic font-light max-w-3xl leading-snug px-4">
             "Marge, no te voy a mentir... <br className="hidden sm:block"/> ¡Quiero otra hamburguesa!"
