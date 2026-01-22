@@ -165,7 +165,9 @@ const ComboCustomizationModal: React.FC<{
   onConfirm: (burgers: ComboburgerSelection[]) => void;
   products: Product[];
 }> = ({ combo, onClose, onConfirm, products }) => {
-  const burgersCount = combo.id === 'combo-duo-share' ? 2 : 1;
+  // Los combos "para compartir" permiten elegir dos hamburguesas
+  const isShareCombo = combo.id.includes('compartir') || combo.name.toLowerCase().includes('compartir');
+  const burgersCount = isShareCombo ? 2 : 1;
   const availableBurgers = products.filter(p => p.category === 'Burgers');
   
   const [selectedBurgers, setSelectedBurgers] = useState<ComboburgerSelection[]>([]);
