@@ -21,7 +21,7 @@ export const PRODUCTS: Product[] = [
     name: "COMBO BAJONERO INDIVIDUAL",
     description: "Cualquier hamburguesa a elección + Papas Fritas + Chocotorta Individual. ¡El bajón perfecto!",
     price: 16000,
-    image: "/combos/combo-bajonero-individual.png",
+    image: "/combos/combosmasheado-1769104696741.png",
     category: "Combos",
     isPopular: true,
     isCombo: true
@@ -31,7 +31,7 @@ export const PRODUCTS: Product[] = [
     name: "COMBO BAJONERO PARA COMPARTIR",
     description: "2 Hamburguesas a elección + Papas Fritas + Chocotorta para Compartir. ¡Un festín para dos!",
     price: 30000,
-    image: "/combos/combo-bajonero-compartir.png",
+    image: "/combos/combox2smasheado-1769104728867.png",
     category: "Combos",
     isCombo: true
   },
