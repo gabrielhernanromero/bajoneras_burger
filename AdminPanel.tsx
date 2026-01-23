@@ -27,6 +27,24 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ products, onClose, onSave }) =>
 
   const handleLogin = () => {
     if (password === ADMIN_PASSWORD) {
+      // Verificar si estamos en Vercel
+      const isVercel = window.location.hostname.includes('vercel.app');
+      if (isVercel) {
+        const confirmAccess = confirm(
+          '⚠️ ADVERTENCIA: Panel de Administración en Vercel\n\n' +
+          'Estás accediendo desde Vercel. Las imágenes NO se pueden subir aquí.\n' +
+          'Los cambios solo se guardarán temporalmente en el navegador.\n\n' +
+          'Para subir imágenes y hacer cambios permanentes:\n' +
+          '1. Abre http://localhost:3000 en tu computadora\n' +
+          '2. Sube las imágenes desde ahí\n' +
+          '3. Haz commit y push de los cambios\n\n' +
+          '¿Deseas continuar de todos modos?'
+        );
+        if (!confirmAccess) {
+          setPassword('');
+          return;
+        }
+      }
       setIsAuthenticated(true);
       setPassword('');
     } else {
