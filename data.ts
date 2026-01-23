@@ -55,7 +55,7 @@ export const PRODUCTS: Product[] = [
   {
     id: "burger-super-mell",
     name: "SUPER MELL",
-    description: "La joya de la casa. Triple medallón smash, triple cheddar, cebolla crispy y nuestra salsa secreta.",
+    description: "Doble carne (240g), 4 fetas de cheddar y extra salsa cheddar en pan de papa dorado en manteca.",
     price: 14000,
     image: "/burgers/Super_Mell.jpg",
     category: "Burgers",
