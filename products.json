@@ -4,7 +4,7 @@
     "name": "COMBO BAJONERO INDIVIDUAL",
     "description": "Cualquier hamburguesa a elección + Papas Fritas + Chocotorta Individual. ¡El bajón perfecto!",
     "price": 16000,
-    "image": "/combos/geminigeneratedimage2h4nmw2h4nmw2h4n-1769126414600.png",
+    "image": "/combos/geminigeneratedimagebou6wnbou6wnbou6-1769127666231.png",
     "category": "Combos",
     "isPopular": true,
     "isCombo": true
@@ -14,14 +14,14 @@
     "name": "COMBO BAJONERO PARA COMPARTIR",
     "description": "2 Hamburguesas a elección + Papas Fritas + Chocotorta para Compartir. ¡Un festín para dos!",
     "price": 30000,
-    "image": "/combos/combox2smasheado-1769104728867.png",
+    "image": "/combos/geminigeneratedimage2h4nmw2h4nmw2h4n-1769127084777.png",
     "category": "Combos",
     "isCombo": true
   },
   {
     "id": "burger-doble-bacon",
     "name": "DOBLE BACON",
-    "description": "Doble medallón smash con bacon crocante caramelizado y cheddar fundido. Un clásico infalible.",
+    "description": "Doble carne (240g), 4 fetas de cheddar y 4 tiras de bacon crocante en pan de papa dorado en manteca.",
     "price": 14000,
     "image": "/burgers/doble_bacon.jpg",
     "category": "Burgers",
@@ -57,7 +57,7 @@
   {
     "id": "burger-super-mell",
     "name": "SUPER MELL",
-    "description": "La joya de la casa. Triple medallón smash, triple cheddar, cebolla crispy y nuestra salsa secreta.",
+    "description": "Doble carne (240g), 4 fetas de cheddar y extra salsa cheddar en pan de papa dorado en manteca.",
     "price": 14000,
     "image": "/burgers/Super_Mell.jpg",
     "category": "Burgers",
@@ -93,7 +93,7 @@
   {
     "id": "burger-oklahoma",
     "name": "OKLAHOMA",
-    "description": "El estilo clásico: Doble medallón smash con cebolla finamente cortada e integrada en la carne. Mucho cheddar y sabor real.",
+    "description": "Doble carne (240g) smasheada con cebolla, 4 fetas de cheddar y salsa cheddar en pan de papa dorado.",
     "price": 14000,
     "image": "/burgers/Oklajoma.jpg",
     "category": "Burgers",
