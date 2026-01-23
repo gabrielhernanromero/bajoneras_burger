@@ -419,10 +419,30 @@ export default function App() {
     return products.filter(p => p.category === activeCategory);
   }, [activeCategory, products]);
 
+  // Función helper para calcular el precio de un item incluyendo extras de combos
+  const getItemPrice = (item: CartItem): number => {
+    let extrasPrice = 0;
+    
+    // Sumar extras directos del producto
+    if (item.selectedExtras) {
+      extrasPrice += item.selectedExtras.reduce((sum, e) => sum + e.price, 0);
+    }
+    
+    // Sumar extras de hamburguesas en combos
+    if (item.comboBurgers) {
+      item.comboBurgers.forEach(burger => {
+        if (burger.extras) {
+          extrasPrice += burger.extras.reduce((sum, e) => sum + e.price, 0);
+        }
+      });
+    }
+    
+    return item.price + extrasPrice;
+  };
+
   const totalItems = cart.reduce((acc, item) => acc + item.quantity, 0);
   const totalPrice = cart.reduce((acc, item) => {
-    const extrasPrice = item.selectedExtras ? item.selectedExtras.reduce((sum, e) => sum + e.price, 0) : 0;
-    return acc + ((item.price + extrasPrice) * item.quantity);
+    return acc + (getItemPrice(item) * item.quantity);
   }, 0);
 
   const handleAddToCart = (product: Product) => {
@@ -517,8 +537,7 @@ export default function App() {
     
     // Construir sección de productos
     const productsList = cart.map((item, index) => {
-      const extrasPrice = item.selectedExtras ? item.selectedExtras.reduce((sum, e) => sum + e.price, 0) : 0;
-      const itemUnitPrice = item.price + extrasPrice;
+      const itemUnitPrice = getItemPrice(item);
       const itemTotal = itemUnitPrice * item.quantity;
       
       let itemText = `▪️ ${item.quantity}x *${item.name.toUpperCase()}*`;
@@ -935,8 +954,7 @@ export default function App() {
                       {/* Lista de Productos */}
                       <div className="space-y-6">
                         {cart.map(item => {
-                          const extrasPrice = item.selectedExtras ? item.selectedExtras.reduce((sum, e) => sum + e.price, 0) : 0;
-                          const itemTotalPrice = item.price + extrasPrice;
+                          const itemTotalPrice = getItemPrice(item);
                           
                           return (
                             <div key={item.cartItemId} className="flex gap-4 sm:gap-6 items-start animate-fade-in group bg-neutral-800/50 p-4 sm:p-5 rounded-2xl border border-white/5 hover:border-yellow-400/30 transition-all">
@@ -1282,11 +1300,7 @@ export default function App() {
                       </h4>
                       <div className="space-y-4">
                         {cart.map(item => {
-                          const extrasPrice = item.selectedExtras ? item.selectedExtras.reduce((sum, e) => sum + e.price, 0) : 0;
-                          const itemUnitPrice = item.price + extrasPrice;
-                          const itemTotal = itemUnitPrice * item.quantity;
-                          
-                          return (
+                          const itemUnitPrice = getItemPrice(item);
                             <div key={item.cartItemId} className="border-b border-neutral-200 pb-3 last:border-b-0">
                               <div className="flex justify-between items-start mb-2">
                                 <div className="flex-1">
