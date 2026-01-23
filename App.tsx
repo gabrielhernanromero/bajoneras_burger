@@ -1599,7 +1599,7 @@ const ProductCard: React.FC<{ product: Product; onAdd: (p: Product) => void; isA
       <div className="p-8 sm:p-14 flex-1 flex flex-col justify-between space-y-8 sm:space-y-12">
         <div className="space-y-4 sm:space-y-6">
           <h3 className="font-bebas text-4xl sm:text-6xl tracking-widest uppercase group-hover:text-yellow-400 transition-colors leading-none italic drop-shadow-md">{product.name}</h3>
-          <p className="text-neutral-500 text-sm sm:text-xl leading-relaxed font-light line-clamp-3 italic opacity-80">{product.description}</p>
+          <p className="text-neutral-500 text-sm sm:text-xl leading-relaxed font-light italic opacity-80">{product.description}</p>
         </div>
         
         <div className="flex flex-col items-stretch gap-6">
