@@ -4,6 +4,7 @@ import { ShoppingCart, Send, Plus, Minus, X, Menu, Phone, Instagram, Check, User
 import { PRODUCTS, SHOP_SETTINGS } from './data';
 import { Product, CartItem, Category, Extra, ComboburgerSelection } from './types';
 import AdminPanel from './AdminPanel';
+import { supabaseService } from './supabaseClient';
 
 // --- Helper Components ---
 
@@ -364,18 +365,40 @@ export default function App() {
   const [comboCarouselIndex, setComboCarouselIndex] = useState(0);
   const [showAdminPanel, setShowAdminPanel] = useState(false);
   
-  // Cargar productos desde localStorage o usar los valores por defecto
-  const [products, setProducts] = useState<Product[]>(() => {
-    try {
-      const savedProducts = localStorage.getItem('bajoneras_products');
-      if (savedProducts) {
-        return JSON.parse(savedProducts);
-      }
-    } catch (error) {
-      console.error('Error cargando productos desde localStorage:', error);
+  // Detectar si se accede desde URL de administración
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('admin') === 'bajoneras2026') {
+      setShowAdminPanel(true);
     }
-    return PRODUCTS;
-  });
+  }, []);
+  
+  // Cargar productos desde Supabase o usar los valores por defecto
+  const [products, setProducts] = useState<Product[]>(PRODUCTS);
+  const [isLoadingProducts, setIsLoadingProducts] = useState(true);
+  
+  useEffect(() => {
+    const loadProducts = async () => {
+      try {
+        const supabaseProducts = await supabaseService.getProducts();
+        if (supabaseProducts && supabaseProducts.length > 0) {
+          setProducts(supabaseProducts);
+        } else {
+          // Si no hay productos en Supabase, usar los por defecto y guardarlos
+          setProducts(PRODUCTS);
+          await supabaseService.replaceAllProducts(PRODUCTS);
+        }
+      } catch (error) {
+        console.error('Error cargando productos desde Supabase:', error);
+        // Fallback a datos locales
+        setProducts(PRODUCTS);
+      } finally {
+        setIsLoadingProducts(false);
+      }
+    };
+    
+    loadProducts();
+  }, []);
   
   // Obtener categorías dinámicas de los productos
   const categories = useMemo(() => 
@@ -626,13 +649,6 @@ export default function App() {
           {/* Título para móvil */}
           <div className="flex sm:hidden items-center justify-between">
             <span className="font-bebas text-2xl tracking-widest italic">MENÚ</span>
-            <button
-              onClick={() => setShowAdminPanel(true)}
-              className="p-2 bg-neutral-800 hover:bg-yellow-400 hover:text-black rounded-lg transition-all"
-              title="Panel de Administrador"
-            >
-              <Settings size={20} />
-            </button>
           </div>
 
           {/* Menú desktop */}
@@ -651,14 +667,6 @@ export default function App() {
                   {cat}
                 </button>
               ))}
-              <div className="flex-1"></div>
-              <button
-                onClick={() => setShowAdminPanel(true)}
-                className="p-2.5 bg-neutral-800 hover:bg-yellow-400 hover:text-black text-neutral-400 hover:text-black rounded-lg transition-all"
-                title="Panel de Administrador"
-              >
-                <Settings size={20} />
-              </button>
             </div>
           </div>
         </div>
@@ -1448,42 +1456,28 @@ export default function App() {
         <AdminPanel 
           products={products} 
           onClose={() => setShowAdminPanel(false)} 
-          onSave={(updatedProducts) => {
+          onSave={async (updatedProducts) => {
             try {
-              const dataString = JSON.stringify(updatedProducts);
-              const sizeInMB = new Blob([dataString]).size / (1024 * 1024);
+              // Guardar en Supabase
+              const result = await supabaseService.replaceAllProducts(updatedProducts);
               
-              // Verificar si excede el límite de localStorage (aprox 5-10MB)
-              if (sizeInMB > 5) {
-                alert(`⚠️ ADVERTENCIA: Los datos ocupan ${sizeInMB.toFixed(2)}MB.\n\n` +
-                      `Las imágenes base64 son muy pesadas. Se recomienda:\n` +
-                      `1. Usar URLs de imágenes en lugar de archivos\n` +
-                      `2. Subir las imágenes a un servidor/hosting\n` +
-                      `3. Usar imágenes más pequeñas\n\n` +
-                      `De todas formas se intentará guardar...`);
+              if (result) {
+                setProducts(updatedProducts);
+                setShowAdminPanel(false);
+                alert(`✅ Cambios guardados exitosamente en la base de datos!\n\nTodos los clientes verán los cambios actualizados.`);
+              } else {
+                alert(`⚠️ Error al guardar en la base de datos.\n\nVerifica tu conexión a Supabase.`);
               }
-              
-              // Guardar en localStorage
-              localStorage.setItem('bajoneras_products', dataString);
-              setProducts(updatedProducts);
-              setShowAdminPanel(false);
-              alert(`✅ Cambios guardados exitosamente!\n\nDatos: ${sizeInMB.toFixed(2)}MB\nLos datos son ahora persistentes en toda la aplicación.`);
             } catch (error) {
               console.error('Error guardando productos:', error);
               
               // Mensaje de error más específico
-              let errorMsg = '❌ Error al guardar los cambios.\n\n';
-              if (error instanceof Error && error.name === 'QuotaExceededError') {
-                errorMsg += 'PROBLEMA: El tamaño de los datos excede el límite de almacenamiento del navegador.\n\n' +
-                           'SOLUCIONES:\n' +
-                           '1. Usa URLs de imágenes en lugar de subir archivos\n' +
-                           '2. Reduce el número de productos con imágenes grandes\n' +
-                           '3. Comprime las imágenes antes de subirlas\n\n' +
-                           'TIP: Las imágenes base64 pueden ser 30% más grandes que el archivo original.';
-              } else {
-                errorMsg += `Detalles: ${error instanceof Error ? error.message : 'Error desconocido'}\n\n` +
-                           'Intenta de nuevo o contacta al desarrollador.';
-              }
+              let errorMsg = '❌ Error al guardar los cambios en Supabase.\n\n';
+              errorMsg += `Detalles: ${error instanceof Error ? error.message : 'Error desconocido'}\n\n` +
+                         'Verifica:\n' +
+                         '1. La configuración de Supabase en .env.local\n' +
+                         '2. Que la tabla "products" existe en Supabase\n' +
+                         '3. Los permisos de la tabla';
               alert(errorMsg);
             }
           }}
