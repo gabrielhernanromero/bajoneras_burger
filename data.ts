@@ -71,7 +71,7 @@ export const PRODUCTS: Product[] = [
   {
     id: "burger-oklahoma",
     name: "OKLAHOMA",
-    description: "El estilo clásico: Doble medallón smash con cebolla finamente cortada e integrada en la carne. Mucho cheddar y sabor real.",
+    description: "Doble carne (240g) smasheada con cebolla, 4 fetas de cheddar y salsa cheddar en pan de papa dorado.",
     price: 14000,
     image: "/burgers/Oklajoma.jpg",
     category: "Burgers",
