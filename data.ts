@@ -22,7 +22,7 @@ export const PRODUCTS: Product[] = [
     name: "COMBO BAJONERO INDIVIDUAL",
     description: "Cualquier hamburguesa a elección + Papas Fritas + Chocotorta Individual. ¡El bajón perfecto!",
     price: 16000,
-    image: "/combos/combosmasheado-1769104696741.png",
+    image: "/combos/geminigeneratedimagebou6wnbou6wnbou6-1769127666231.png",
     category: "Combos",
     isPopular: true,
     isCombo: true
@@ -32,14 +32,14 @@ export const PRODUCTS: Product[] = [
     name: "COMBO BAJONERO PARA COMPARTIR",
     description: "2 Hamburguesas a elección + Papas Fritas + Chocotorta para Compartir. ¡Un festín para dos!",
     price: 30000,
-    image: "/combos/combox2smasheado-1769104728867.png",
+    image: "/combos/geminigeneratedimage2h4nmw2h4nmw2h4n-1769127084777.png",
     category: "Combos",
     isCombo: true
   },
   {
     id: "burger-doble-bacon",
     name: "DOBLE BACON",
-    description: "Doble medallón smash con bacon crocante caramelizado y cheddar fundido. Un clásico infalible.",
+    description: "Doble carne (240g), 4 fetas de cheddar y 4 tiras de bacon crocante en pan de papa dorado en manteca.",
     price: 14000,
     image: "/burgers/doble_bacon.jpg",
     category: "Burgers",
