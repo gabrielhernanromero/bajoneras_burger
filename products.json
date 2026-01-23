@@ -4,7 +4,7 @@
     "name": "COMBO BAJONERO INDIVIDUAL",
     "description": "Cualquier hamburguesa a elección + Papas Fritas + Chocotorta Individual. ¡El bajón perfecto!",
     "price": 16000,
-    "image": "/combos/geminigeneratedimagebou6wnbou6wnbou6-1769127666231.png",
+    "image": "/combos/comboindividualul-1769139267385.png",
     "category": "Combos",
     "isPopular": true,
     "isCombo": true
@@ -14,7 +14,7 @@
     "name": "COMBO BAJONERO PARA COMPARTIR",
     "description": "2 Hamburguesas a elección + Papas Fritas + Chocotorta para Compartir. ¡Un festín para dos!",
     "price": 30000,
-    "image": "/combos/geminigeneratedimage2h4nmw2h4nmw2h4n-1769127084777.png",
+    "image": "/combos/combox2ultimo-1769139297872.png",
     "category": "Combos",
     "isCombo": true
   },
@@ -23,7 +23,7 @@
     "name": "DOBLE BACON",
     "description": "Doble carne (240g), 4 fetas de cheddar y 4 tiras de bacon crocante en pan de papa dorado en manteca.",
     "price": 14000,
-    "image": "/burgers/doble_bacon.jpg",
+    "image": "/burgers/doblebaconultimo-1769139529253.png",
     "category": "Burgers",
     "isPopular": true,
     "extras": [
@@ -59,7 +59,7 @@
     "name": "SUPER MELL",
     "description": "Doble carne (240g), 4 fetas de cheddar y extra salsa cheddar en pan de papa dorado en manteca.",
     "price": 14000,
-    "image": "/burgers/Super_Mell.jpg",
+    "image": "/burgers/supermellul-1769139391647.png",
     "category": "Burgers",
     "isPopular": true,
     "extras": [
@@ -95,7 +95,7 @@
     "name": "OKLAHOMA",
     "description": "Doble carne (240g) smasheada con cebolla, 4 fetas de cheddar y salsa cheddar en pan de papa dorado.",
     "price": 14000,
-    "image": "/burgers/Oklajoma.jpg",
+    "image": "/burgers/oklajomaul-1769139419558.png",
     "category": "Burgers",
     "extras": [
       {
@@ -130,7 +130,7 @@
     "name": "CHOCOTORTA GRANDE",
     "description": "Nuestra clásica Chocotorta XXL. Capas infinitas de galletitas, dulce de leche y queso crema. ¡Perfecta para compartir!",
     "price": 7000,
-    "image": "/postres/chocotorta-grande.jpg",
+    "image": "/postres/chocograndeul-1769139461931.png",
     "category": "Postres",
     "isPopular": true
   },
@@ -139,7 +139,7 @@
     "name": "CHOCOTORTA CHICA",
     "description": "Nuestra deliciosa Chocotorta en porción individual. Capas de galletitas, dulce de leche y queso crema. ¡Para disfrutar solo!",
     "price": 4000,
-    "image": "/postres/chocotorta-chica.png",
+    "image": "/postres/chocochicaul-1769139502516.png",
     "category": "Postres"
   }
 ]

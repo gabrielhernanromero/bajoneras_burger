@@ -1301,6 +1301,9 @@ export default function App() {
                       <div className="space-y-4">
                         {cart.map(item => {
                           const itemUnitPrice = getItemPrice(item);
+                          const itemTotal = itemUnitPrice * item.quantity;
+                          
+                          return (
                             <div key={item.cartItemId} className="border-b border-neutral-200 pb-3 last:border-b-0">
                               <div className="flex justify-between items-start mb-2">
                                 <div className="flex-1">
