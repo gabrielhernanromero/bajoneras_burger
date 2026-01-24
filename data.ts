@@ -54,7 +54,7 @@ export const PRODUCTS: Product[] = [
   },
   {
     id: "burger-super-mell",
-    name: "SUPER MELL",
+    name: "CHEESEBURGER",
     description: "Doble carne (240g), 4 fetas de cheddar y extra salsa cheddar en pan de papa dorado en manteca.",
     price: 14000,
     image: "/burgers/supermellul-1769139391647.png",
