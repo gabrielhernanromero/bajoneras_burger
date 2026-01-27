@@ -3,7 +3,12 @@ import { createClient } from '@supabase/supabase-js';
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || '';
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey);
+// Solo crear el cliente si hay credenciales configuradas
+const isSupabaseConfigured = supabaseUrl && supabaseAnonKey && supabaseUrl !== '' && supabaseAnonKey !== '';
+
+export const supabase = isSupabaseConfigured 
+  ? createClient(supabaseUrl, supabaseAnonKey)
+  : null as any;
 
 // Mapeo de campos inglés -> español (DB)
 const toSpanishFields = (product: any) => {
@@ -41,10 +46,15 @@ const toEnglishFields = (product: any) => ({
 export const supabaseService = {
   // Obtener todos los productos
   async getProducts() {
+    // Si Supabase no está configurado, retornar null
+    if (!supabase) {
+      console.log('Supabase no configurado, usando datos locales');
+      return null;
+    }
+    
     const { data, error } = await supabase
       .from('Productos')
-      .select('*')
-      .order('created_at', { ascending: true });
+      .select('*');
     
     if (error) {
       console.error('Error obteniendo productos:', error);
@@ -57,6 +67,11 @@ export const supabaseService = {
 
   // Guardar/actualizar producto
   async upsertProduct(product: any) {
+    if (!supabase) {
+      console.log('Supabase no configurado');
+      return null;
+    }
+    
     const spanishProduct = toSpanishFields(product);
     
     const { data, error } = await supabase
@@ -74,43 +89,61 @@ export const supabaseService = {
 
   // Guardar múltiples productos (reemplazar todos)
   async replaceAllProducts(products: any[]) {
-    // Primero, obtener todos los IDs existentes
-    const { data: existingProducts } = await supabase
-      .from('Productos')
-      .select('id');
-    
-    // Si hay productos existentes, eliminarlos uno por uno
-    if (existingProducts && existingProducts.length > 0) {
-      for (const product of existingProducts) {
-        await supabase
-          .from('Productos')
-          .delete()
-          .eq('id', product.id);
-      }
-    }
-
-    // Convertir productos a español y REMOVER el campo id para que Supabase genere nuevos
-    const spanishProducts = products.map(p => {
-      const { id, ...rest } = toSpanishFields(p);
-      return rest;
-    });
-
-    // Insertar los nuevos productos
-    const { data, error } = await supabase
-      .from('Productos')
-      .insert(spanishProducts)
-      .select();
-    
-    if (error) {
-      console.error('Error guardando productos:', error);
+    if (!supabase) {
+      console.log('Supabase no configurado');
       return null;
     }
     
-    return data ? data.map(toEnglishFields) : null;
+    try {
+      // Convertir productos a español
+      const spanishProducts = products.map(p => toSpanishFields(p));
+
+      // Usar upsert para actualizar o insertar según el id
+      const { data, error } = await supabase
+        .from('Productos')
+        .upsert(spanishProducts, { onConflict: 'id' })
+        .select();
+      
+      if (error) {
+        console.error('Error guardando productos:', error);
+        return null;
+      }
+      
+      // Si no hay datos, significa que no hay productos nuevos
+      // Ahora eliminar los que ya no existen
+      const { data: allProducts } = await supabase
+        .from('Productos')
+        .select('id');
+      
+      if (allProducts) {
+        const newProductIds = new Set(products.map(p => p.id));
+        const existingIds = allProducts.map(p => p.id);
+        
+        // Eliminar productos que ya no están en la lista
+        for (const id of existingIds) {
+          if (!newProductIds.has(id)) {
+            await supabase
+              .from('Productos')
+              .delete()
+              .eq('id', id);
+          }
+        }
+      }
+      
+      return data ? data.map(toEnglishFields) : null;
+    } catch (error) {
+      console.error('Error en replaceAllProducts:', error);
+      return null;
+    }
   },
 
   // Eliminar producto
   async deleteProduct(productId: string) {
+    if (!supabase) {
+      console.log('Supabase no configurado');
+      return false;
+    }
+    
     const { error } = await supabase
       .from('Productos')
       .delete()
@@ -126,6 +159,11 @@ export const supabaseService = {
 
   // Subir imagen a Supabase Storage
   async uploadImage(file: File): Promise<string | null> {
+    if (!supabase) {
+      console.log('Supabase no configurado');
+      return null;
+    }
+    
     try {
       const fileExt = file.name.split('.').pop();
       const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;

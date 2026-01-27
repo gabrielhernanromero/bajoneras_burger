@@ -425,7 +425,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ products, onClose, onSave }) =>
 
         {/* Filtro por categoría */}
         <div className="mb-6 flex gap-3 flex-wrap">
-          {categories.map((category) => {
+          {categories.map((category: string) => {
             const count = category === 'Todos' 
               ? editedProducts.length 
               : editedProducts.filter(p => p.category === category).length;
