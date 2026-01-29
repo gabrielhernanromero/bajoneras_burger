@@ -31,10 +31,18 @@ export default function App() {
   
   // Detectar acceso admin
   useEffect(() => {
-    const urlParams = new URLSearchParams(window.location.search);
-    if (urlParams.get('admin') === 'bajoneras2026') {
-      setShowAdminPanel(true);
-    }
+    const checkAdmin = () => {
+      const hash = window.location.hash;
+      const urlParams = new URLSearchParams(window.location.search);
+      if (hash === '#admin' || urlParams.get('admin') === 'bajoneras2026') {
+        setShowAdminPanel(true);
+      }
+    };
+    
+    checkAdmin();
+    window.addEventListener('hashchange', checkAdmin);
+    
+    return () => window.removeEventListener('hashchange', checkAdmin);
   }, []);
   
   // Categorías dinámicas con orden específico
