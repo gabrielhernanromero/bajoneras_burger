@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { X, Edit2, Save, Trash2, Plus, Eye, EyeOff, RotateCcw } from 'lucide-react';
 import { Product } from './types';
+import { supabaseService } from './supabaseClient';
 
 interface AdminPanelProps {
   products: Product[];
@@ -119,7 +120,6 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ products, onClose, onSave }) =>
   const handleImageFile = async (file: File, index: number) => {
     try {
       const originalSizeMB = file.size / (1024 * 1024);
-      const productCategory = editedProducts[index].category.toLowerCase();
       
       let fileToUpload = file;
       
@@ -137,37 +137,25 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ products, onClose, onSave }) =>
         }
       }
       
-      // Crear FormData para enviar la imagen
-      const formData = new FormData();
-      formData.append('image', fileToUpload);
-      formData.append('category', productCategory);
+      // Subir imagen a Supabase Storage
+      alert('📤 Subiendo imagen a Supabase...');
+      const imageUrl = await supabaseService.uploadImage(fileToUpload);
       
-      // Subir imagen al servidor
-      const response = await fetch('http://localhost:3002/api/upload', {
-        method: 'POST',
-        body: formData
-      });
-      
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || 'Error al subir la imagen');
+      if (!imageUrl) {
+        alert('❌ Error al subir la imagen a Supabase.\n\nVerifica que el bucket "product-images" existe y es público.');
+        return;
       }
       
-      const data = await response.json();
-      
-      // Actualizar el producto con la URL de la imagen
-      handleEditProduct(index, 'image', data.url);
+      // Actualizar la URL de la imagen en el producto
+      const updated = [...editedProducts];
+      updated[index] = { ...updated[index], image: imageUrl };
+      setEditedProducts(updated);
       
       const finalSizeMB = fileToUpload.size / (1024 * 1024);
-      const compressionInfo = originalSizeMB > 1 
-        ? `\n\n📊 Original: ${originalSizeMB.toFixed(2)}MB → Comprimida: ${finalSizeMB.toFixed(2)}MB`
-        : '';
-      
-      alert(`✅ Imagen subida exitosamente!${compressionInfo}\n\nGuardada en: public${data.url}\nAhora haz click en "GUARDAR CAMBIOS" para que sea permanente.`);
-      
+      alert(`✅ Imagen subida exitosamente!\n\nTamaño: ${finalSizeMB.toFixed(2)}MB\nURL: ${imageUrl.substring(0, 50)}...`);
     } catch (error) {
       console.error('Error al subir imagen:', error);
-      alert(`❌ Error al subir la imagen:\n\n${error instanceof Error ? error.message : 'Error desconocido'}\n\nAsegúrate de que el servidor esté corriendo (npm start).`);
+      alert('❌ Error al procesar la imagen:\n\n' + (error instanceof Error ? error.message : 'Error desconocido'));
     }
   };
 

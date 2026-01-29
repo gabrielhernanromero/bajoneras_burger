@@ -4,6 +4,7 @@ import { ShoppingCart, Send, Plus, Minus, X, Menu, Phone, Instagram, Check, User
 import { PRODUCTS, SHOP_SETTINGS } from './data';
 import { Product, CartItem, Category, Extra, ComboburgerSelection } from './types';
 import AdminPanel from './AdminPanel';
+import { supabaseService } from './supabaseClient';
 
 // --- Helper Components ---
 
@@ -165,9 +166,7 @@ const ComboCustomizationModal: React.FC<{
   onConfirm: (burgers: ComboburgerSelection[]) => void;
   products: Product[];
 }> = ({ combo, onClose, onConfirm, products }) => {
-  // Los combos "para compartir" permiten elegir dos hamburguesas
-  const isShareCombo = combo.id.includes('compartir') || combo.name.toLowerCase().includes('compartir');
-  const burgersCount = isShareCombo ? 2 : 1;
+  const burgersCount = combo.id === 'combo-duo-share' ? 2 : 1;
   const availableBurgers = products.filter(p => p.category === 'Burgers');
   
   const [selectedBurgers, setSelectedBurgers] = useState<ComboburgerSelection[]>([]);
@@ -366,38 +365,39 @@ export default function App() {
   const [comboCarouselIndex, setComboCarouselIndex] = useState(0);
   const [showAdminPanel, setShowAdminPanel] = useState(false);
   
-  // Cargar productos desde el servidor o usar los valores por defecto
-  const [products, setProducts] = useState<Product[]>(() => {
-    try {
-      const savedProducts = localStorage.getItem('bajoneras_products');
-      if (savedProducts) {
-        return JSON.parse(savedProducts);
-      }
-    } catch (error) {
-      console.error('Error cargando productos desde localStorage:', error);
-    }
-    return PRODUCTS;
-  });
-
-  // Efecto para cargar productos desde el servidor al montar
+  // Detectar si se accede desde URL de administración
   useEffect(() => {
-    const loadProductsFromServer = async () => {
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('admin') === 'bajoneras2026') {
+      setShowAdminPanel(true);
+    }
+  }, []);
+  
+  // Cargar productos desde Supabase o usar los valores por defecto
+  const [products, setProducts] = useState<Product[]>(PRODUCTS);
+  const [isLoadingProducts, setIsLoadingProducts] = useState(true);
+  
+  useEffect(() => {
+    const loadProducts = async () => {
       try {
-        const response = await fetch('http://localhost:3002/api/products');
-        if (response.ok) {
-          const serverProducts = await response.json();
-          if (serverProducts && serverProducts.length > 0) {
-            setProducts(serverProducts);
-            console.log('✅ Productos cargados desde servidor:', serverProducts.length);
-            return;
-          }
+        const supabaseProducts = await supabaseService.getProducts();
+        if (supabaseProducts && supabaseProducts.length > 0) {
+          setProducts(supabaseProducts);
+        } else {
+          // Si no hay productos en Supabase, usar los por defecto y guardarlos
+          setProducts(PRODUCTS);
+          await supabaseService.replaceAllProducts(PRODUCTS);
         }
       } catch (error) {
-        console.warn('No se pudo cargar productos del servidor, usando datos locales:', error);
+        console.error('Error cargando productos desde Supabase:', error);
+        // Fallback a datos locales
+        setProducts(PRODUCTS);
+      } finally {
+        setIsLoadingProducts(false);
       }
     };
-
-    loadProductsFromServer();
+    
+    loadProducts();
   }, []);
   
   // Obtener categorías dinámicas de los productos
@@ -410,7 +410,6 @@ export default function App() {
   const [checkoutStep, setCheckoutStep] = useState(0); // 0: Carrito, 1: Datos, 2: Logística
   const [customerName, setCustomerName] = useState('');
   const [customerAddress, setCustomerAddress] = useState('');
-  const [customerBetweenStreets, setCustomerBetweenStreets] = useState('');
   const [paymentMethod, setPaymentMethod] = useState<'efectivo' | 'transferencia'>('efectivo');
   const [deliveryMethod, setDeliveryMethod] = useState<'delivery' | 'retiro'>('delivery');
 
@@ -419,30 +418,10 @@ export default function App() {
     return products.filter(p => p.category === activeCategory);
   }, [activeCategory, products]);
 
-  // Función helper para calcular el precio de un item incluyendo extras de combos
-  const getItemPrice = (item: CartItem): number => {
-    let extrasPrice = 0;
-    
-    // Sumar extras directos del producto
-    if (item.selectedExtras) {
-      extrasPrice += item.selectedExtras.reduce((sum, e) => sum + e.price, 0);
-    }
-    
-    // Sumar extras de hamburguesas en combos
-    if (item.comboBurgers) {
-      item.comboBurgers.forEach(burger => {
-        if (burger.extras) {
-          extrasPrice += burger.extras.reduce((sum, e) => sum + e.price, 0);
-        }
-      });
-    }
-    
-    return item.price + extrasPrice;
-  };
-
   const totalItems = cart.reduce((acc, item) => acc + item.quantity, 0);
   const totalPrice = cart.reduce((acc, item) => {
-    return acc + (getItemPrice(item) * item.quantity);
+    const extrasPrice = item.selectedExtras ? item.selectedExtras.reduce((sum, e) => sum + e.price, 0) : 0;
+    return acc + ((item.price + extrasPrice) * item.quantity);
   }, 0);
 
   const handleAddToCart = (product: Product) => {
@@ -537,7 +516,8 @@ export default function App() {
     
     // Construir sección de productos
     const productsList = cart.map((item, index) => {
-      const itemUnitPrice = getItemPrice(item);
+      const extrasPrice = item.selectedExtras ? item.selectedExtras.reduce((sum, e) => sum + e.price, 0) : 0;
+      const itemUnitPrice = item.price + extrasPrice;
       const itemTotal = itemUnitPrice * item.quantity;
       
       let itemText = `▪️ ${item.quantity}x *${item.name.toUpperCase()}*`;
@@ -573,8 +553,7 @@ export default function App() {
     const message = `Hola Bajoneras! 👋 Quiero confirmar este pedido de la web:%0A%0A` +
       `🧾 *Pedido N° ${orderId}*%0A` +
       `👤 *${customerName}*%0A` +
-      `📍 *${customerAddress}*%0A` +
-      (customerBetweenStreets ? `Entre calles: ${customerBetweenStreets}%0A%0A` : `%0A%0A`) +
+      `📍 *${customerAddress}*%0A%0A` +
       
       `🛒 *DETALLE:*%0A%0A` +
       `${productsList}%0A%0A` +
@@ -595,7 +574,6 @@ export default function App() {
     setCheckoutStep(0);
     setCustomerName('');
     setCustomerAddress('');
-    setCustomerBetweenStreets('');
     setPaymentMethod('efectivo');
     setDeliveryMethod('delivery');
   };
@@ -671,13 +649,6 @@ export default function App() {
           {/* Título para móvil */}
           <div className="flex sm:hidden items-center justify-between">
             <span className="font-bebas text-2xl tracking-widest italic">MENÚ</span>
-            <button
-              onClick={() => setShowAdminPanel(true)}
-              className="p-2 bg-neutral-800 hover:bg-yellow-400 hover:text-black rounded-lg transition-all"
-              title="Panel de Administrador"
-            >
-              <Settings size={20} />
-            </button>
           </div>
 
           {/* Menú desktop */}
@@ -696,14 +667,6 @@ export default function App() {
                   {cat}
                 </button>
               ))}
-              <div className="flex-1"></div>
-              <button
-                onClick={() => setShowAdminPanel(true)}
-                className="p-2.5 bg-neutral-800 hover:bg-yellow-400 hover:text-black text-neutral-400 hover:text-black rounded-lg transition-all"
-                title="Panel de Administrador"
-              >
-                <Settings size={20} />
-              </button>
             </div>
           </div>
         </div>
@@ -749,41 +712,45 @@ export default function App() {
           <section className="animate-fade-in scroll-mt-28" id="combos-carousel">
             <SectionHeading title="COMBOS" />
             <div className="relative">
-              {/* Carrusel Items */}
-              <div className="overflow-hidden">
-                <div className="flex transition-transform duration-500 ease-out" style={{ transform: `translateX(-${comboCarouselIndex * 100}%)` }}>
-                  {products.filter(p => p.category === 'Combos').map(product => (
-                    <div key={product.id} className="w-full flex-shrink-0">
-                      <ProductCard product={product} onAdd={handleAddToCart} isAnimating={lastAdded === product.id} />
-                    </div>
-                  ))}
+              {/* Carrusel Container */}
+              <div className="flex items-center justify-center gap-4 sm:gap-8">
+                {/* Botón Anterior */}
+                <button
+                  onClick={() => {
+                    const combosCount = products.filter(p => p.category === 'Combos').length;
+                    setComboCarouselIndex((prev) => (prev - 1 + combosCount) % combosCount);
+                  }}
+                  className="flex-shrink-0 p-3 sm:p-4 bg-yellow-400 hover:bg-white text-black rounded-full transition-all hover:scale-110 active:scale-90 shadow-lg"
+                >
+                  <svg className="w-5 h-5 sm:w-6 sm:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M15 19l-7-7 7-7" />
+                  </svg>
+                </button>
+
+                {/* Carrusel Items */}
+                <div className="flex-1 overflow-hidden">
+                  <div className="flex transition-transform duration-500 ease-out" style={{ transform: `translateX(-${comboCarouselIndex * 100}%)` }}>
+                    {products.filter(p => p.category === 'Combos').map(product => (
+                      <div key={product.id} className="w-full flex-shrink-0">
+                        <ProductCard product={product} onAdd={handleAddToCart} isAnimating={lastAdded === product.id} />
+                      </div>
+                    ))}
+                  </div>
                 </div>
+
+                {/* Botón Siguiente */}
+                <button
+                  onClick={() => {
+                    const combosCount = products.filter(p => p.category === 'Combos').length;
+                    setComboCarouselIndex((prev) => (prev + 1) % combosCount);
+                  }}
+                  className="flex-shrink-0 p-3 sm:p-4 bg-yellow-400 hover:bg-white text-black rounded-full transition-all hover:scale-110 active:scale-90 shadow-lg"
+                >
+                  <svg className="w-5 h-5 sm:w-6 sm:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M9 5l7 7-7 7" />
+                  </svg>
+                </button>
               </div>
-
-              {/* Botones de navegación - Posicionados absolutamente */}
-              <button
-                onClick={() => {
-                  const combosCount = products.filter(p => p.category === 'Combos').length;
-                  setComboCarouselIndex((prev) => (prev - 1 + combosCount) % combosCount);
-                }}
-                className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-2 sm:-translate-x-4 z-10 p-3 sm:p-4 bg-yellow-400 hover:bg-white text-black rounded-full transition-all hover:scale-110 active:scale-90 shadow-lg"
-              >
-                <svg className="w-5 h-5 sm:w-6 sm:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M15 19l-7-7 7-7" />
-                </svg>
-              </button>
-
-              <button
-                onClick={() => {
-                  const combosCount = products.filter(p => p.category === 'Combos').length;
-                  setComboCarouselIndex((prev) => (prev + 1) % combosCount);
-                }}
-                className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-2 sm:translate-x-4 z-10 p-3 sm:p-4 bg-yellow-400 hover:bg-white text-black rounded-full transition-all hover:scale-110 active:scale-90 shadow-lg"
-              >
-                <svg className="w-5 h-5 sm:w-6 sm:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M9 5l7 7-7 7" />
-                </svg>
-              </button>
 
               {/* Indicadores de página */}
               <div className="flex justify-center gap-2 sm:gap-3 mt-6 sm:mt-8">
@@ -954,7 +921,8 @@ export default function App() {
                       {/* Lista de Productos */}
                       <div className="space-y-6">
                         {cart.map(item => {
-                          const itemTotalPrice = getItemPrice(item);
+                          const extrasPrice = item.selectedExtras ? item.selectedExtras.reduce((sum, e) => sum + e.price, 0) : 0;
+                          const itemTotalPrice = item.price + extrasPrice;
                           
                           return (
                             <div key={item.cartItemId} className="flex gap-4 sm:gap-6 items-start animate-fade-in group bg-neutral-800/50 p-4 sm:p-5 rounded-2xl border border-white/5 hover:border-yellow-400/30 transition-all">
@@ -969,16 +937,6 @@ export default function App() {
                                 {item.comboBurgers && item.comboBurgers.length > 0 && (
                                   <div className="mb-3 space-y-2 bg-black/30 p-3 rounded-lg border border-yellow-400/20">
                                     <p className="text-xs font-bold text-yellow-400 uppercase tracking-wide mb-2">📋 Tu Combo incluye:</p>
-                                    {item.id === 'combo-bajonero-individual' && (
-                                      <p className="text-[11px] font-black text-orange-300">
-                                        Incluye 1 Chocotorta chica 🍰
-                                      </p>
-                                    )}
-                                    {item.id === 'combo-bajonero-compartir' && (
-                                      <p className="text-[11px] font-black text-orange-300">
-                                        Incluye 1 Chocotorta grande 🍰
-                                      </p>
-                                    )}
                                     {item.comboBurgers.map((burger, idx) => (
                                       <div key={idx} className="text-xs">
                                         <p className="text-white font-black">• {burger.burger.name}</p>
@@ -1121,31 +1079,6 @@ export default function App() {
                       </p>
                     </div>
 
-                    {/* Input de Entre Calles */}
-                    <div className="group">
-                      <label className="flex items-center gap-2 text-white text-sm sm:text-base font-black mb-2 uppercase tracking-wide">
-                        <div className="w-8 h-8 bg-yellow-400 rounded-lg flex items-center justify-center text-black">
-                          <MapPin size={18} strokeWidth={3} />
-                        </div>
-                        <span>Entre Calles</span>
-                        <span className="text-red-500 text-2xl leading-none">*</span>
-                      </label>
-                      <div className="relative">
-                        <input 
-                          type="text"
-                          value={customerBetweenStreets}
-                          onChange={(e) => setCustomerBetweenStreets(e.target.value)}
-                          placeholder="Ej: Entre Av. Los Andes y Calle Principal"
-                          className="w-full bg-gradient-to-br from-neutral-800 to-neutral-900 border-3 border-white/20 rounded-xl px-4 py-3 text-white text-lg sm:text-xl font-bold placeholder:text-neutral-600 focus:border-yellow-400 focus:shadow-[0_0_30px_rgba(250,204,21,0.3)] focus:outline-none transition-all duration-300"
-                        />
-                        {customerBetweenStreets && (
-                          <div className="absolute right-3 top-1/2 -translate-y-1/2 text-green-500">
-                            <Check size={24} strokeWidth={3} />
-                          </div>
-                        )}
-                      </div>
-                    </div>
-
                     {/* Método de Pago */}
                     <div>
                       <label className="flex items-center gap-2 text-white text-sm sm:text-base font-black mb-2 uppercase tracking-wide">
@@ -1279,12 +1212,6 @@ export default function App() {
                           <span className="text-neutral-600 font-bold">Dirección:</span>
                           <span className="font-black text-right max-w-[60%]">{customerAddress}</span>
                         </div>
-                        {customerBetweenStreets && (
-                          <div className="flex justify-between">
-                            <span className="text-neutral-600 font-bold">Entre calles:</span>
-                            <span className="font-black text-right max-w-[60%]">{customerBetweenStreets}</span>
-                          </div>
-                        )}
                         <div className="flex justify-between">
                           <span className="text-neutral-600 font-bold">Pago:</span>
                           <span className="font-black uppercase">{paymentMethod === 'efectivo' ? '💵 EFECTIVO' : '💳 TRANSFERENCIA'}</span>
@@ -1300,7 +1227,8 @@ export default function App() {
                       </h4>
                       <div className="space-y-4">
                         {cart.map(item => {
-                          const itemUnitPrice = getItemPrice(item);
+                          const extrasPrice = item.selectedExtras ? item.selectedExtras.reduce((sum, e) => sum + e.price, 0) : 0;
+                          const itemUnitPrice = item.price + extrasPrice;
                           const itemTotal = itemUnitPrice * item.quantity;
                           
                           return (
@@ -1311,29 +1239,6 @@ export default function App() {
                                     <span className="font-black text-lg">{item.quantity}x</span>
                                     <div className="flex-1">
                                       <p className="font-black text-sm uppercase leading-tight">{item.name}</p>
-                                      
-                                      {/* Mostrar hamburguesas del combo */}
-                                      {item.comboBurgers && item.comboBurgers.length > 0 && (
-                                        <div className="mt-2 bg-orange-50 p-2 rounded border border-orange-200">
-                                          <p className="text-[10px] font-bold text-orange-700 uppercase mb-1">🍔 Hamburguesas:</p>
-                                          {item.comboBurgers.map((burger, idx) => (
-                                            <div key={idx} className="text-xs text-neutral-700 mb-1">
-                                              <p className="font-bold">• {burger.burger.name}</p>
-                                              {burger.extras && burger.extras.length > 0 && (
-                                                <p className="text-[10px] text-neutral-600 ml-2">
-                                                  Extras: {burger.extras.map(e => e.name).join(', ')}
-                                                </p>
-                                              )}
-                                              {burger.notes && (
-                                                <p className="text-[10px] text-neutral-600 italic ml-2">
-                                                  Obs: {burger.notes}
-                                                </p>
-                                              )}
-                                            </div>
-                                          ))}
-                                        </div>
-                                      )}
-                                      
                                       {item.selectedExtras && item.selectedExtras.length > 0 && (
                                         <div className="mt-1 space-y-1">
                                           {item.selectedExtras.map(extra => (
@@ -1420,17 +1325,17 @@ export default function App() {
                     onClick={() => {
                       if (checkoutStep === 0 && cart.length > 0) {
                         setCheckoutStep(1);
-                      } else if (checkoutStep === 1 && customerName.trim() && customerAddress.trim() && customerBetweenStreets.trim()) {
+                      } else if (checkoutStep === 1 && customerName.trim() && customerAddress.trim()) {
                         setCheckoutStep(2);
                       }
                     }}
                     disabled={
                       (checkoutStep === 0 && cart.length === 0) || 
-                      (checkoutStep === 1 && (!customerName.trim() || !customerAddress.trim() || !customerBetweenStreets.trim()))
+                      (checkoutStep === 1 && (!customerName.trim() || !customerAddress.trim()))
                     }
                     className={`flex-1 py-5 rounded-2xl font-black text-lg sm:text-xl uppercase tracking-wide transition-all ${
                       (checkoutStep === 0 && cart.length === 0) || 
-                      (checkoutStep === 1 && (!customerName.trim() || !customerAddress.trim() || !customerBetweenStreets.trim()))
+                      (checkoutStep === 1 && (!customerName.trim() || !customerAddress.trim()))
                         ? 'bg-neutral-800 text-neutral-600 cursor-not-allowed opacity-50'
                         : 'bg-yellow-400 text-black hover:bg-yellow-300 active:scale-95 shadow-lg'
                     }`}
@@ -1479,8 +1384,8 @@ export default function App() {
           </div>
 
           <div className="flex gap-10 sm:gap-16">
-            <a href={`https://instagram.com/${SHOP_SETTINGS.instagramHandle}`} target="_blank" rel="noopener noreferrer" className="p-6 sm:p-10 bg-neutral-900 rounded-[2rem] sm:rounded-[3rem] hover:bg-yellow-400 hover:text-black transition-all hover:-translate-y-4 shadow-2xl border border-white/5" title="Síguenos en Instagram"><Instagram size={40} /></a>
-            <a href={`https://wa.me/${SHOP_SETTINGS.whatsappNumber}?text=Hola%20Bajoneras%20Burger%21%20%F0%9F%98%8B%0A%0AQuiero%20hacer%20un%20pedido%20desde%20la%20web.%20Consultar%20disponibilidad%20y%20horarios.`} target="_blank" rel="noopener noreferrer" className="p-6 sm:p-10 bg-neutral-900 rounded-[2rem] sm:rounded-[3rem] hover:bg-green-500 hover:text-black transition-all hover:-translate-y-4 shadow-2xl border border-white/5" title="Contactanos por WhatsApp"><Phone size={40} /></a>
+            <a href="#" className="p-6 sm:p-10 bg-neutral-900 rounded-[2rem] sm:rounded-[3rem] hover:bg-yellow-400 hover:text-black transition-all hover:-translate-y-4 shadow-2xl border border-white/5"><Instagram size={40} /></a>
+            <a href={`https://wa.me/${SHOP_SETTINGS.whatsappNumber}`} className="p-6 sm:p-10 bg-neutral-900 rounded-[2rem] sm:rounded-[3rem] hover:bg-green-500 hover:text-black transition-all hover:-translate-y-4 shadow-2xl border border-white/5"><Phone size={40} /></a>
           </div>
           <p className="text-neutral-500 text-2xl sm:text-4xl italic font-light max-w-3xl leading-snug px-4">
             "Marge, no te voy a mentir... <br className="hidden sm:block"/> ¡Quiero otra hamburguesa!"
@@ -1551,42 +1456,28 @@ export default function App() {
         <AdminPanel 
           products={products} 
           onClose={() => setShowAdminPanel(false)} 
-          onSave={(updatedProducts) => {
+          onSave={async (updatedProducts) => {
             try {
-              const dataString = JSON.stringify(updatedProducts);
-              const sizeInMB = new Blob([dataString]).size / (1024 * 1024);
+              // Guardar en Supabase
+              const result = await supabaseService.replaceAllProducts(updatedProducts);
               
-              // Verificar si excede el límite de localStorage (aprox 5-10MB)
-              if (sizeInMB > 5) {
-                alert(`⚠️ ADVERTENCIA: Los datos ocupan ${sizeInMB.toFixed(2)}MB.\n\n` +
-                      `Las imágenes base64 son muy pesadas. Se recomienda:\n` +
-                      `1. Usar URLs de imágenes en lugar de archivos\n` +
-                      `2. Subir las imágenes a un servidor/hosting\n` +
-                      `3. Usar imágenes más pequeñas\n\n` +
-                      `De todas formas se intentará guardar...`);
+              if (result) {
+                setProducts(updatedProducts);
+                setShowAdminPanel(false);
+                alert(`✅ Cambios guardados exitosamente en la base de datos!\n\nTodos los clientes verán los cambios actualizados.`);
+              } else {
+                alert(`⚠️ Error al guardar en la base de datos.\n\nVerifica tu conexión a Supabase.`);
               }
-              
-              // Guardar en localStorage
-              localStorage.setItem('bajoneras_products', dataString);
-              setProducts(updatedProducts);
-              setShowAdminPanel(false);
-              alert(`✅ Cambios guardados exitosamente!\n\nDatos: ${sizeInMB.toFixed(2)}MB\nLos datos son ahora persistentes en toda la aplicación.`);
             } catch (error) {
               console.error('Error guardando productos:', error);
               
               // Mensaje de error más específico
-              let errorMsg = '❌ Error al guardar los cambios.\n\n';
-              if (error instanceof Error && error.name === 'QuotaExceededError') {
-                errorMsg += 'PROBLEMA: El tamaño de los datos excede el límite de almacenamiento del navegador.\n\n' +
-                           'SOLUCIONES:\n' +
-                           '1. Usa URLs de imágenes en lugar de subir archivos\n' +
-                           '2. Reduce el número de productos con imágenes grandes\n' +
-                           '3. Comprime las imágenes antes de subirlas\n\n' +
-                           'TIP: Las imágenes base64 pueden ser 30% más grandes que el archivo original.';
-              } else {
-                errorMsg += `Detalles: ${error instanceof Error ? error.message : 'Error desconocido'}\n\n` +
-                           'Intenta de nuevo o contacta al desarrollador.';
-              }
+              let errorMsg = '❌ Error al guardar los cambios en Supabase.\n\n';
+              errorMsg += `Detalles: ${error instanceof Error ? error.message : 'Error desconocido'}\n\n` +
+                         'Verifica:\n' +
+                         '1. La configuración de Supabase en .env.local\n' +
+                         '2. Que la tabla "products" existe en Supabase\n' +
+                         '3. Los permisos de la tabla';
               alert(errorMsg);
             }
           }}
@@ -1616,7 +1507,7 @@ const ProductCard: React.FC<{ product: Product; onAdd: (p: Product) => void; isA
       <div className="p-8 sm:p-14 flex-1 flex flex-col justify-between space-y-8 sm:space-y-12">
         <div className="space-y-4 sm:space-y-6">
           <h3 className="font-bebas text-4xl sm:text-6xl tracking-widest uppercase group-hover:text-yellow-400 transition-colors leading-none italic drop-shadow-md">{product.name}</h3>
-          <p className="text-neutral-500 text-sm sm:text-xl leading-relaxed font-light italic opacity-80">{product.description}</p>
+          <p className="text-neutral-500 text-sm sm:text-xl leading-relaxed font-light line-clamp-3 italic opacity-80">{product.description}</p>
         </div>
         
         <div className="flex flex-col items-stretch gap-6">
