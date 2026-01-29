@@ -37,11 +37,24 @@ export default function App() {
     }
   }, []);
   
-  // Categorías dinámicas
-  const categories = useMemo(() => 
-    ['Todos', ...Array.from(new Set(products.map(p => p.category as string)))],
-    [products]
-  );
+  // Categorías dinámicas con orden específico
+  const categories = useMemo(() => {
+    const uniqueCategories = Array.from(new Set(products.map(p => p.category as string)));
+    const orderMap: { [key: string]: number } = {
+      'Combos': 0,
+      'Burgers': 1,
+      'Postres': 2
+    };
+    
+    // Ordenar por el mapa, y agregar nuevas categorías al final
+    const sortedCategories = uniqueCategories.sort((a, b) => {
+      const orderA = orderMap[a] ?? 999;
+      const orderB = orderMap[b] ?? 999;
+      return orderA - orderB;
+    });
+    
+    return ['Todos', ...sortedCategories];
+  }, [products]);
   
   // Productos filtrados
   const filteredProducts = useMemo(() => {
@@ -270,7 +283,10 @@ export default function App() {
 
         {/* Otras Secciones */}
         <div className="space-y-24 sm:space-y-40">
-          {(activeCategory === 'Todos' ? ['Burgers', 'Postres'] : (activeCategory !== 'Combos' ? [activeCategory] : [])).map(cat => (
+          {(activeCategory === 'Todos' 
+            ? categories.filter(cat => cat !== 'Todos' && cat !== 'Combos')
+            : (activeCategory !== 'Combos' ? [activeCategory] : [])
+          ).map(cat => (
              <section key={cat} className="animate-fade-in scroll-mt-28" id={cat.toLowerCase()}>
                <SectionHeading title={cat} />
                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-8 sm:gap-14">

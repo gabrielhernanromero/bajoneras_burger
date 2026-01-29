@@ -22,15 +22,30 @@ const toSpanishFields = (product: any, isUpdate: boolean = false) => {
     combo: product.comboType ? String(product.comboType).trim() : null, // Asegurar que es string
   };
   
-  // Solo incluir id si existe Y es un update (no para inserts nuevos)
-  if (product.id && (isUpdate || typeof product.id === 'number')) {
-    const numId = typeof product.id === 'string' ? parseInt(product.id, 10) : product.id;
-    // Solo incluir si es un número válido mayor a 0
-    if (!isNaN(numId) && numId > 0) {
+  // Solo incluir id si es un número válido o puede convertirse a número válido
+  if (product.id) {
+    // Intentar extraer número del ID si es string tipo "product-123" o convertir directamente
+    let numId: number | null = null;
+    
+    if (typeof product.id === 'number') {
+      numId = product.id;
+    } else if (typeof product.id === 'string') {
+      // Si el ID es un string, intentar parsearlo
+      const parsed = parseInt(product.id, 10);
+      // Solo usar si es un número válido y mayor a 0
+      if (!isNaN(parsed) && parsed > 0) {
+        numId = parsed;
+      }
+    }
+    
+    // Solo incluir el ID si es un número válido mayor a 0
+    // Si no es válido, Supabase generará uno automáticamente
+    if (numId && numId > 0) {
       mapped.id = numId;
     }
   }
   
+  // Si no hay ID válido, Supabase lo autogenerará (campo SERIAL)
   return mapped;
 };
 
@@ -76,22 +91,42 @@ export const supabaseService = {
       throw new Error('Supabase no configurado');
     }
     
-    const hasValidId = product.id && !isNaN(parseInt(String(product.id), 10)) && parseInt(String(product.id), 10) > 0;
-    const spanishProduct = toSpanishFields(product, hasValidId);
+    const spanishProduct = toSpanishFields(product);
     console.log('Intentando guardar producto:', spanishProduct);
     
-    const { data, error } = await supabase
-      .from('Productos')
-      .upsert(spanishProduct)
-      .select();
+    // Si no tiene ID válido, es un INSERT nuevo
+    // Si tiene ID válido, es un UPDATE
+    const isNewProduct = !spanishProduct.id;
     
-    if (error) {
-      console.error('❌ Error guardando producto en Supabase:', error);
-      throw new Error(`Error de Supabase: ${error.message}`);
+    if (isNewProduct) {
+      console.log('Insertando nuevo producto (sin ID)...');
+      const { data, error } = await supabase
+        .from('Productos')
+        .insert(spanishProduct)
+        .select();
+      
+      if (error) {
+        console.error('❌ Error insertando producto en Supabase:', error);
+        throw new Error(`Error de Supabase: ${error.message}`);
+      }
+      
+      console.log('✅ Producto insertado exitosamente:', data);
+      return data ? data.map(toEnglishFields) : null;
+    } else {
+      console.log('Actualizando producto existente con ID:', spanishProduct.id);
+      const { data, error } = await supabase
+        .from('Productos')
+        .upsert(spanishProduct)
+        .select();
+      
+      if (error) {
+        console.error('❌ Error actualizando producto en Supabase:', error);
+        throw new Error(`Error de Supabase: ${error.message}`);
+      }
+      
+      console.log('✅ Producto actualizado exitosamente:', data);
+      return data ? data.map(toEnglishFields) : null;
     }
-    
-    console.log('✅ Producto guardado exitosamente:', data);
-    return data ? data.map(toEnglishFields) : null;
   },
 
   // Guardar múltiples productos (reemplazar todos)
@@ -105,65 +140,95 @@ export const supabaseService = {
       console.log('=== INICIANDO replaceAllProducts ===');
       console.log('Productos a guardar:', products.length);
       
-      // Convertir productos a español, detectando si tienen ID válido
-      const spanishProducts = products.map(p => {
-        const hasValidId = p.id && !isNaN(parseInt(String(p.id), 10)) && parseInt(String(p.id), 10) > 0;
-        console.log(`Producto: ${p.name}, ID: ${p.id}, hasValidId: ${hasValidId}`);
-        return toSpanishFields(p, hasValidId);
+      // Separar productos nuevos (sin ID válido) de productos existentes
+      const newProducts: any[] = [];
+      const existingProducts: any[] = [];
+      
+      products.forEach(p => {
+        const spanishProduct = toSpanishFields(p);
+        if (spanishProduct.id) {
+          existingProducts.push(spanishProduct);
+        } else {
+          newProducts.push(spanishProduct);
+        }
       });
       
-      console.log('Productos en español (listos para guardar):', spanishProducts);
-
-      // Usar upsert para actualizar o insertar según el id
-      const { data, error } = await supabase
-        .from('Productos')
-        .upsert(spanishProducts, { onConflict: 'id' })
-        .select();
+      console.log(`Productos nuevos: ${newProducts.length}, Existentes: ${existingProducts.length}`);
       
-      if (error) {
-        console.error('❌ Error de Supabase en upsert:', error);
-        throw new Error(`Error de Supabase: ${error.message}`);
+      const allResults: any[] = [];
+      
+      // Insertar productos nuevos
+      if (newProducts.length > 0) {
+        console.log('Insertando productos nuevos:', newProducts);
+        const { data: insertData, error: insertError } = await supabase
+          .from('Productos')
+          .insert(newProducts)
+          .select();
+        
+        if (insertError) {
+          console.error('❌ Error insertando productos nuevos:', insertError);
+          throw new Error(`Error de Supabase: ${insertError.message}`);
+        }
+        
+        if (insertData) {
+          console.log('✅ Productos nuevos insertados:', insertData.length);
+          allResults.push(...insertData);
+        }
       }
       
-      if (!data || data.length === 0) {
-        console.warn('⚠️ Upsert completado pero no hay datos retornados');
-      } else {
-        console.log('✅ Datos retornados de Supabase:', data);
+      // Actualizar productos existentes
+      if (existingProducts.length > 0) {
+        console.log('Actualizando productos existentes:', existingProducts);
+        const { data: updateData, error: updateError } = await supabase
+          .from('Productos')
+          .upsert(existingProducts, { onConflict: 'id' })
+          .select();
+        
+        if (updateError) {
+          console.error('❌ Error actualizando productos existentes:', updateError);
+          throw new Error(`Error de Supabase: ${updateError.message}`);
+        }
+        
+        if (updateData) {
+          console.log('✅ Productos existentes actualizados:', updateData.length);
+          allResults.push(...updateData);
+        }
       }
       
-      // Obtener todos los productos actuales
+      // Obtener todos los productos actuales para limpiar los que no están en la nueva lista
       console.log('Obteniendo todos los productos para limpiar...');
-      const { data: allProducts, error: getAllError } = await supabase
+      const { data: allDbProducts, error: getAllError } = await supabase
         .from('Productos')
         .select('id');
       
       if (getAllError) {
         console.error('⚠️ Error obteniendo productos para limpiar:', getAllError);
-      } else if (allProducts) {
-        const newProductIds = new Set(products.map(p => p.id).filter(id => id));
-        const existingIds = allProducts.map(p => p.id);
+      } else if (allDbProducts) {
+        // Obtener IDs de los productos que acabamos de guardar
+        const savedIds = new Set(allResults.map(p => p.id));
+        const dbIds = allDbProducts.map(p => p.id);
         
-        console.log('IDs nuevos:', Array.from(newProductIds));
-        console.log('IDs existentes en BD:', existingIds);
+        console.log('IDs guardados:', Array.from(savedIds));
+        console.log('IDs en BD:', dbIds);
         
         // Eliminar productos que ya no están en la lista
-        for (const id of existingIds) {
-          if (!newProductIds.has(id)) {
-            console.log(`Eliminando producto con id: ${id}`);
+        for (const dbId of dbIds) {
+          if (!savedIds.has(dbId)) {
+            console.log(`Eliminando producto con id: ${dbId}`);
             const { error: delError } = await supabase
               .from('Productos')
               .delete()
-              .eq('id', id);
+              .eq('id', dbId);
             
             if (delError) {
-              console.error(`Error eliminando id ${id}:`, delError);
+              console.error(`Error eliminando id ${dbId}:`, delError);
             }
           }
         }
       }
       
-      const result = data ? data.map(toEnglishFields) : [];
-      console.log('=== FIN replaceAllProducts - Retornando:', result);
+      const result = allResults.map(toEnglishFields);
+      console.log('=== FIN replaceAllProducts - Retornando:', result.length, 'productos');
       return result;
     } catch (error) {
       console.error('=== ERROR en replaceAllProducts:', error);

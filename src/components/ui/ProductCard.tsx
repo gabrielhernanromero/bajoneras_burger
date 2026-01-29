@@ -35,7 +35,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, onAdd, isAnim
         <div className="flex flex-col items-stretch gap-6">
           <div className="flex flex-col">
              <span className="text-neutral-600 text-[10px] sm:text-xs font-black uppercase tracking-[0.3em] mb-1">Precio Final</span>
-             <span className="font-black text-3xl sm:text-5xl lg:text-6xl text-white tracking-tighter italic">${product.price.toLocaleString()}</span>
+             <span className="font-black text-3xl sm:text-5xl lg:text-6xl text-white tracking-tighter italic">${product.price.toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.')}</span>
           </div>
           <button 
             onClick={() => onAdd(product)}
