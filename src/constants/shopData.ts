@@ -45,11 +45,12 @@ export const PRODUCTS: Product[] = [
     category: "Burgers",
     isPopular: true,
     extras: [
-      { id: "extra-bacon", name: "Bacon Extra", price: 1500 },
-      { id: "extra-cheddar", name: "Queso Cheddar", price: 1500 },
-      { id: "extra-medallon-120", name: "Medallón 120 g", price: 3000 },
-      { id: "extra-cheddar-bacon-papas", name: "Cheddar y Bacon en Papas", price: 4000 },
-      { id: "extra-huevo", name: "Huevo Frito", price: 1000 }
+      { id: "extra-doble-cheddar", name: "Doble Cheddar", price: 1500 },
+      { id: "extra-doble-bacon", name: "Doble Bacon", price: 1500 },
+      { id: "extra-cheddar-papas", name: "Cheddar en Papas", price: 2000 },
+      { id: "extra-bacon-papas", name: "Bacon en Papas", price: 2000 },
+      { id: "extra-cheddar-bacon-papas", name: "Cheddar y Bacon en Papas", price: 3000 },
+      { id: "extra-medallon", name: "Medallón Extra 120g", price: 3000 }
     ]
   },
   {
@@ -61,11 +62,12 @@ export const PRODUCTS: Product[] = [
     category: "Burgers",
     isPopular: true,
     extras: [
-      { id: "extra-bacon", name: "Bacon Extra", price: 1500 },
-      { id: "extra-cheddar", name: "Queso Cheddar", price: 1500 },
-      { id: "extra-medallon-120", name: "Medallón 120 g", price: 3000 },
-      { id: "extra-cheddar-bacon-papas", name: "Cheddar y Bacon en Papas", price: 4000 },
-      { id: "extra-huevo", name: "Huevo Frito", price: 1000 }
+      { id: "extra-doble-cheddar", name: "Doble Cheddar", price: 1500 },
+      { id: "extra-doble-bacon", name: "Doble Bacon", price: 1500 },
+      { id: "extra-cheddar-papas", name: "Cheddar en Papas", price: 2000 },
+      { id: "extra-bacon-papas", name: "Bacon en Papas", price: 2000 },
+      { id: "extra-cheddar-bacon-papas", name: "Cheddar y Bacon en Papas", price: 3000 },
+      { id: "extra-medallon", name: "Medallón Extra 120g", price: 3000 }
     ]
   },
   {
@@ -76,11 +78,12 @@ export const PRODUCTS: Product[] = [
     image: "/burgers/oklajomaul-1769139419558.png",
     category: "Burgers",
     extras: [
-      { id: "extra-bacon", name: "Bacon Extra", price: 1500 },
-      { id: "extra-cheddar", name: "Queso Cheddar", price: 1500 },
-      { id: "extra-medallon-120", name: "Medallón 120 g", price: 3000 },
-      { id: "extra-cheddar-bacon-papas", name: "Cheddar y Bacon en Papas", price: 4000 },
-      { id: "extra-huevo", name: "Huevo Frito", price: 1000 }
+      { id: "extra-doble-cheddar", name: "Doble Cheddar", price: 1500 },
+      { id: "extra-doble-bacon", name: "Doble Bacon", price: 1500 },
+      { id: "extra-cheddar-papas", name: "Cheddar en Papas", price: 2000 },
+      { id: "extra-bacon-papas", name: "Bacon en Papas", price: 2000 },
+      { id: "extra-cheddar-bacon-papas", name: "Cheddar y Bacon en Papas", price: 3000 },
+      { id: "extra-medallon", name: "Medallón Extra 120g", price: 3000 }
     ]
   },
   {

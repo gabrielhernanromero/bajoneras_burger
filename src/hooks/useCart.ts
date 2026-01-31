@@ -45,6 +45,17 @@ export const useCart = () => {
     );
   }, []);
 
+  const updateItem = useCallback((cartItemId: string, updates: Partial<CartItem>) => {
+    setCart((prev) =>
+      prev.map((item) => {
+        if (item.cartItemId === cartItemId) {
+          return { ...item, ...updates };
+        }
+        return item;
+      })
+    );
+  }, []);
+
   const clearCart = useCallback(() => {
     setCart([]);
   }, []);
@@ -76,6 +87,7 @@ export const useCart = () => {
     addToCart,
     removeFromCart,
     updateQuantity,
+    updateItem,
     clearCart,
     getTotalItems,
     getTotalPrice,

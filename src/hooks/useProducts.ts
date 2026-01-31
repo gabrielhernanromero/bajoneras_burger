@@ -12,6 +12,7 @@ export const useProducts = () => {
       try {
         console.log('Cargando productos desde Supabase...');
         const supabaseProducts = await supabaseService.getProducts();
+
         if (supabaseProducts && supabaseProducts.length > 0) {
           console.log('Productos cargados de Supabase:', supabaseProducts);
           setProducts(supabaseProducts);
@@ -34,7 +35,7 @@ export const useProducts = () => {
     try {
       console.log('Actualizando productos en Supabase...', newProducts);
       const result = await supabaseService.replaceAllProducts(newProducts);
-      
+
       if (result && Array.isArray(result)) {
         console.log('✅ Productos actualizados exitosamente:', result);
         setProducts(result); // Usar los datos retornados de Supabase, no los locales
