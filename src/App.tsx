@@ -55,7 +55,7 @@ export default function App() {
     };
 
     // Ordenar por el mapa, y agregar nuevas categorías al final
-    const sortedCategories = uniqueCategories.sort((a, b) => {
+    const sortedCategories = uniqueCategories.sort((a: string, b: string) => {
       const orderA = orderMap[a] ?? 999;
       const orderB = orderMap[b] ?? 999;
       return orderA - orderB;
