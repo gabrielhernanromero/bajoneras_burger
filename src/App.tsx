@@ -1,34 +1,34 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { ShoppingCart, Send, Plus, Minus, X, Menu, Phone, Instagram, MapPin, Truck, Store, CreditCard, Banknote, Receipt, Settings } from 'lucide-react';
-import { Product, Category } from './types';
+import { Product, Category, CartItem, Extra, ComboburgerSelection } from './types';
 import { useCart, useProducts, useModal } from './hooks';
-import { SHOP_SETTINGS } from './constants';
-import { WhatsAppService } from './services';
+import { SHOP_SETTINGS, PRODUCTS } from './constants';
+
 import { SectionHeading, ProductCard } from './components/ui';
-import { CustomizationModal, ComboCustomizationModal } from './components/modals';
+import { CustomizationModal, ComboCustomizationModal, CartModal } from './components/modals';
 import AdminPanel from './components/admin/AdminPanel';
 
 export default function App() {
   // Hooks personalizados
-  const { cart, addToCart, removeFromCart, updateQuantity, getTotalItems, getTotalPrice, lastAddedId } = useCart();
+  const { cart, addToCart, removeFromCart, updateQuantity, updateItem, getTotalItems, getTotalPrice, lastAddedId } = useCart();
   const { products, setProducts, updateProducts, loading } = useProducts();
-  
+
   // Estados locales
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [activeCategory, setActiveCategory] = useState<string>('Todos');
   const [customizingProduct, setCustomizingProduct] = useState<Product | null>(null);
   const [customizingCombo, setCustomizingCombo] = useState<Product | null>(null);
+
+  // Estados para Edición
+  const [editingCartItemId, setEditingCartItemId] = useState<string | null>(null);
+  const [editingExtras, setEditingExtras] = useState<Extra[]>([]);
+  const [editingNotes, setEditingNotes] = useState('');
+  const [editingComboSelection, setEditingComboSelection] = useState<ComboburgerSelection[]>([]);
+
   const [comboCarouselIndex, setComboCarouselIndex] = useState(0);
   const [showAdminPanel, setShowAdminPanel] = useState(false);
-  
-  // Estados del checkout
-  const [checkoutStep, setCheckoutStep] = useState(0);
-  const [customerName, setCustomerName] = useState('');
-  const [customerAddress, setCustomerAddress] = useState('');
-  const [paymentMethod, setPaymentMethod] = useState<'efectivo' | 'transferencia'>('efectivo');
-  const [deliveryMethod, setDeliveryMethod] = useState<'delivery' | 'retiro'>('delivery');
-  
+
   // Detectar acceso admin
   useEffect(() => {
     const checkAdmin = () => {
@@ -38,13 +38,13 @@ export default function App() {
         setShowAdminPanel(true);
       }
     };
-    
+
     checkAdmin();
     window.addEventListener('hashchange', checkAdmin);
-    
+
     return () => window.removeEventListener('hashchange', checkAdmin);
   }, []);
-  
+
   // Categorías dinámicas con orden específico
   const categories = useMemo(() => {
     const uniqueCategories = Array.from(new Set(products.map(p => p.category as string)));
@@ -53,67 +53,127 @@ export default function App() {
       'Burgers': 1,
       'Postres': 2
     };
-    
+
     // Ordenar por el mapa, y agregar nuevas categorías al final
     const sortedCategories = uniqueCategories.sort((a, b) => {
       const orderA = orderMap[a] ?? 999;
       const orderB = orderMap[b] ?? 999;
       return orderA - orderB;
     });
-    
+
     return ['Todos', ...sortedCategories];
   }, [products]);
-  
+
   // Productos filtrados
   const filteredProducts = useMemo(() => {
     if (activeCategory === 'Todos') return products;
     return products.filter(p => p.category === activeCategory);
   }, [activeCategory, products]);
-  
+
   // Handlers
   const handleAddToCart = (product: Product) => {
-    if (product.category === 'Combos') {
-      setCustomizingCombo(product);
-    } else if (product.extras && product.extras.length > 0) {
-      setCustomizingProduct(product);
+    // INYECCIÓN DE EXTRAS LOCALES:
+    // Buscamos la definición local de este producto para usar sus extras actualizados
+    // aunque la imagen venga de Supabase.
+    let localDef = PRODUCTS.find(p => p.id === product.id);
+    if (!localDef) {
+      // Fallback por nombre si el ID no coincide
+      localDef = PRODUCTS.find(p => p.name.trim().toLowerCase() === product.name.trim().toLowerCase());
+    }
+
+    const productWithExtras = localDef ? {
+      ...product,
+      extras: localDef.extras,
+      price: localDef.price // Aseguramos usar el precio local también
+    } : product;
+
+    if (productWithExtras.category === 'Combos') {
+      setCustomizingCombo(productWithExtras);
+    } else if (productWithExtras.extras && productWithExtras.extras.length > 0) {
+      setCustomizingProduct(productWithExtras);
     } else {
-      addToCart(product, [], '');
+      addToCart(productWithExtras, [], '');
     }
   };
-  
-  const handleSendOrder = () => {
-    const total = getTotalPrice();
-    const message = WhatsAppService.generateOrderMessage(
-      cart,
-      total,
-      deliveryMethod,
-      customerAddress,
-      paymentMethod,
-      customerName
-    );
-    
-    WhatsAppService.sendOrder(message);
-    
-    // Reset
+
+  const handleEditCartItem = (item: CartItem) => {
+    // 1. Cerrar carrito
     setIsCartOpen(false);
-    setCheckoutStep(0);
-    setCustomerName('');
-    setCustomerAddress('');
+
+    // 2. Setear ID de edición
+    setEditingCartItemId(item.cartItemId || null);
+
+    // 3. Buscar definición local (inyección)
+    let localDef = PRODUCTS.find(p => p.id === item.id);
+    if (!localDef) {
+      localDef = PRODUCTS.find(p => p.name.trim().toLowerCase() === item.name.trim().toLowerCase());
+    }
+    const productWithExtras = localDef ? {
+      ...item,
+      extras: localDef.extras,
+      price: localDef.price
+    } : item;
+
+    // 4. Abrir modal correspondiente pre-cargado
+    if (item.category === 'Combos') {
+      // Para combos, forzamos re-selección desde cero porque el wizard no soporta edición por pasos
+      setEditingComboSelection([]);
+      setCustomizingCombo(productWithExtras);
+    } else {
+      setEditingExtras(item.selectedExtras || []);
+      setEditingNotes(item.notes || '');
+      setCustomizingProduct(productWithExtras);
+    }
   };
-  
+
+  const handleAddProductFromCart = (product: Product) => {
+    // 1. Cerrar carrito
+    setIsCartOpen(false);
+
+    // 2. Usar la lógica de agregar normal para abrir el modal fresco
+    // Nota: Como 'product' viene del carrito, ya tiene 'extras' y precio modificado.
+    // Necesitamos la definición "original" para empezar de cero, o queremos clonar?
+    // El usuario dijo: "ESTA ES UNA NUEVA POR LO QUE TAMBIEN SE LE DEBE PREGUNTAR AL USUARIO SI QUIERE EXTRAS"
+    // Esto implica el flujo standard de "Agregar producto".
+    // Buscamos el producto original por ID para tener los defaults limpios.
+
+    const originalProduct = PRODUCTS.find(p => p.id === product.id);
+    if (originalProduct) {
+      handleAddToCart(originalProduct);
+    } else {
+      // Fallback si no encontramos (raro), usamos el del carrito pero limpiando selections
+      // Pero handleAddToCart ya hace inyección anyway.
+      handleAddToCart(product);
+    }
+  };
+
   const totalItems = getTotalItems();
   const totalPrice = getTotalPrice();
 
   return (
     <div className="min-h-screen bg-neutral-950 text-white selection:bg-yellow-400 selection:text-black antialiased overflow-x-hidden">
-      
+
+      {/* Modales */}
       {/* Modales */}
       {customizingProduct && (
         <CustomizationModal
           product={customizingProduct}
-          onClose={() => setCustomizingProduct(null)}
+          initialExtras={editingCartItemId ? editingExtras : []}
+          initialNotes={editingCartItemId ? editingNotes : ''}
+          confirmLabel={editingCartItemId ? 'GUARDAR CAMBIOS' : 'AGREGAR AL CARRITO'}
+          onClose={() => {
+            setCustomizingProduct(null);
+            setEditingCartItemId(null); // Limpiar si cancela
+            if (editingCartItemId) setIsCartOpen(true); // Volver al carrito si estaba editando
+          }}
           onConfirm={(extras, notes) => {
-            addToCart(customizingProduct, extras, notes);
+            if (editingCartItemId) {
+              updateItem(editingCartItemId, { selectedExtras: extras, notes: notes });
+              setEditingCartItemId(null);
+              setIsCartOpen(true); // Volver al carrito
+            } else {
+              addToCart(customizingProduct, extras, notes);
+            }
             setCustomizingProduct(null);
           }}
         />
@@ -122,12 +182,37 @@ export default function App() {
       {customizingCombo && (
         <ComboCustomizationModal
           combo={customizingCombo}
-          onClose={() => setCustomizingCombo(null)}
+          initialBurgers={editingCartItemId ? editingComboSelection : []}
+          confirmLabel={editingCartItemId ? 'GUARDAR CAMBIOS' : 'AGREGAR AL CARRITO'}
+          onClose={() => {
+            setCustomizingCombo(null);
+            setEditingCartItemId(null);
+            if (editingCartItemId) setIsCartOpen(true);
+          }}
           onConfirm={(burgers) => {
-            addToCart(customizingCombo, [], '', burgers);
+            if (editingCartItemId) {
+              updateItem(editingCartItemId, { comboBurgers: burgers });
+              setEditingCartItemId(null);
+              setIsCartOpen(true);
+            } else {
+              addToCart(customizingCombo, [], '', burgers);
+            }
             setCustomizingCombo(null);
           }}
           products={products}
+        />
+      )}
+
+      {/* Cart Modal */}
+      {isCartOpen && (
+        <CartModal
+          cart={cart}
+          onClose={() => setIsCartOpen(false)}
+          onRemove={removeFromCart}
+          onUpdateQuantity={updateQuantity}
+          onEdit={handleEditCartItem}
+          onAddProduct={handleAddProductFromCart}
+          totalPrice={totalPrice}
         />
       )}
 
@@ -135,15 +220,15 @@ export default function App() {
       <header className="relative min-h-[55vh] flex flex-col items-center justify-center bg-black overflow-hidden py-12 sm:py-20">
         <div className="absolute inset-0 opacity-40 bg-[url('https://images.unsplash.com/photo-1550547660-d9450f859349?q=80&w=2000&auto=format&fit=crop')] bg-cover bg-fixed bg-center blur-sm scale-110"></div>
         <div className="absolute inset-0 bg-gradient-to-t from-neutral-950 via-black/20 to-black"></div>
-        
+
         <div className="relative z-10 flex flex-col items-center text-center px-4 w-full max-w-2xl animate-fade-in-up">
           <div className="relative group transition-transform duration-700 hover:scale-105 active:scale-95">
             <div className="absolute inset-0 bg-yellow-400/30 blur-[60px] sm:blur-[120px] rounded-full group-hover:bg-yellow-400/50 transition-all duration-700"></div>
-            
+
             <div className="relative w-56 h-56 sm:w-80 sm:h-80 md:w-96 md:h-96 flex items-center justify-center drop-shadow-[0_20px_50px_rgba(0,0,0,0.9)] bg-white/5 rounded-full overflow-hidden">
-              <img 
-                src={SHOP_SETTINGS.logoUrl} 
-                alt="Logo" 
+              <img
+                src={SHOP_SETTINGS.logoUrl}
+                alt="Logo"
                 className="w-full h-full object-cover animate-float block"
                 loading="eager"
               />
@@ -157,7 +242,7 @@ export default function App() {
         </div>
 
         <div className="absolute bottom-8 animate-bounce opacity-40">
-           <div className="w-1 h-10 rounded-full bg-gradient-to-b from-yellow-400 to-transparent"></div>
+          <div className="w-1 h-10 rounded-full bg-gradient-to-b from-yellow-400 to-transparent"></div>
         </div>
       </header>
 
@@ -182,11 +267,10 @@ export default function App() {
                 <button
                   key={cat}
                   onClick={() => setActiveCategory(cat)}
-                  className={`px-6 sm:px-10 py-2.5 sm:py-3.5 rounded-xl sm:rounded-2xl font-black text-xs sm:text-sm uppercase tracking-widest transition-all duration-300 ${
-                    activeCategory === cat 
-                      ? 'bg-yellow-400 text-black shadow-[0_0_25px_rgba(250,204,21,0.4)] translate-y-[-2px] ring-2 ring-black' 
-                      : 'bg-neutral-900 sm:bg-transparent text-neutral-500 hover:text-white hover:bg-white/5 border border-white/5'
-                  }`}
+                  className={`px-6 sm:px-10 py-2.5 sm:py-3.5 rounded-xl sm:rounded-2xl font-black text-xs sm:text-sm uppercase tracking-widest transition-all duration-300 ${activeCategory === cat
+                    ? 'bg-yellow-400 text-black shadow-[0_0_25px_rgba(250,204,21,0.4)] translate-y-[-2px] ring-2 ring-black'
+                    : 'bg-neutral-900 sm:bg-transparent text-neutral-500 hover:text-white hover:bg-white/5 border border-white/5'
+                    }`}
                 >
                   {cat}
                 </button>
@@ -215,11 +299,10 @@ export default function App() {
                     setActiveCategory(cat);
                     setIsMobileMenuOpen(false);
                   }}
-                  className={`w-full px-6 py-4 rounded-xl font-black text-lg uppercase tracking-widest transition-all ${
-                    activeCategory === cat 
-                      ? 'bg-yellow-400 text-black shadow-lg' 
-                      : 'bg-neutral-800 text-neutral-400 hover:text-white hover:bg-neutral-700'
-                  }`}
+                  className={`w-full px-6 py-4 rounded-xl font-black text-lg uppercase tracking-widest transition-all ${activeCategory === cat
+                    ? 'bg-yellow-400 text-black shadow-lg'
+                    : 'bg-neutral-800 text-neutral-400 hover:text-white hover:bg-neutral-700'
+                    }`}
                 >
                   {cat}
                 </button>
@@ -277,11 +360,10 @@ export default function App() {
                   <button
                     key={idx}
                     onClick={() => setComboCarouselIndex(idx)}
-                    className={`h-2 sm:h-3 rounded-full transition-all ${
-                      idx === comboCarouselIndex
-                        ? 'bg-yellow-400 w-8 sm:w-10'
-                        : 'bg-neutral-700 w-2 sm:w-3 hover:bg-neutral-600'
-                    }`}
+                    className={`h-2 sm:h-3 rounded-full transition-all ${idx === comboCarouselIndex
+                      ? 'bg-yellow-400 w-8 sm:w-10'
+                      : 'bg-neutral-700 w-2 sm:w-3 hover:bg-neutral-600'
+                      }`}
                   />
                 ))}
               </div>
@@ -291,30 +373,29 @@ export default function App() {
 
         {/* Otras Secciones */}
         <div className="space-y-24 sm:space-y-40">
-          {(activeCategory === 'Todos' 
+          {(activeCategory === 'Todos'
             ? categories.filter(cat => cat !== 'Todos' && cat !== 'Combos')
             : (activeCategory !== 'Combos' ? [activeCategory] : [])
           ).map(cat => (
-             <section key={cat} className="animate-fade-in scroll-mt-28" id={cat.toLowerCase()}>
-               <SectionHeading title={cat} />
-               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-8 sm:gap-14">
-                 {products.filter(p => p.category === cat).map(product => (
-                   <ProductCard key={product.id} product={product} onAdd={handleAddToCart} isAnimating={lastAddedId === product.id} />
-                 ))}
-               </div>
-             </section>
+            <section key={cat} className="animate-fade-in scroll-mt-28" id={cat.toLowerCase()}>
+              <SectionHeading title={cat} />
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-8 sm:gap-14">
+                {products.filter(p => p.category === cat).map(product => (
+                  <ProductCard key={product.id} product={product} onAdd={handleAddToCart} isAnimating={lastAddedId === product.id} />
+                ))}
+              </div>
+            </section>
           ))}
         </div>
       </main>
 
       {/* Botón Flotante del Carrito */}
-      {totalItems > 0 && (
-        <button 
+      {totalItems > 0 && !isCartOpen && (
+        <button
           onClick={() => {
             setIsCartOpen(true);
-            setCheckoutStep(0);
           }}
-          className="fixed bottom-6 sm:bottom-10 left-1/2 -translate-x-1/2 z-50 w-[calc(100%-2.5rem)] max-w-sm sm:max-w-lg bg-yellow-400 text-black py-5 sm:py-7 rounded-2xl sm:rounded-[2rem] font-black text-xl sm:text-3xl flex items-center justify-between px-8 sm:px-12 shadow-[0_25px_60px_rgba(0,0,0,0.8)] border-4 border-black ring-8 ring-yellow-400/20 hover:scale-[1.05] active:scale-90 transition-all animate-bounce-subtle pointer-events-auto group"
+          className="fixed bottom-10 sm:bottom-12 left-0 right-0 mx-auto z-[60] w-[90%] sm:w-auto sm:min-w-[400px] max-w-sm sm:max-w-lg bg-yellow-400 text-black py-4 sm:py-6 rounded-2xl sm:rounded-[2rem] font-black text-xl sm:text-3xl flex items-center justify-between px-6 sm:px-12 shadow-[0_25px_60px_rgba(0,0,0,0.8)] border-4 border-black ring-8 ring-yellow-400/20 hover:scale-[1.05] active:scale-90 transition-all animate-bounce-subtle pointer-events-auto group"
         >
           <div className="relative">
             <ShoppingCart size={32} className="sm:w-10 sm:h-10" />
@@ -327,9 +408,9 @@ export default function App() {
 
       {/* Panel de Administración */}
       {showAdminPanel && !loading && (
-        <AdminPanel 
-          products={products} 
-          onClose={() => setShowAdminPanel(false)} 
+        <AdminPanel
+          products={products}
+          onClose={() => setShowAdminPanel(false)}
           onSave={async (updatedProducts) => {
             console.log('App: Guardando productos actualizados:', updatedProducts);
             const success = await updateProducts(updatedProducts);

@@ -7,15 +7,21 @@ interface CustomizationModalProps {
   product: Product;
   onClose: () => void;
   onConfirm: (extras: Extra[], notes: string) => void;
+  initialExtras?: Extra[];
+  initialNotes?: string;
+  confirmLabel?: string;
 }
 
-export const CustomizationModal: React.FC<CustomizationModalProps> = ({ 
-  product, 
-  onClose, 
-  onConfirm 
+export const CustomizationModal: React.FC<CustomizationModalProps> = ({
+  product,
+  onClose,
+  onConfirm,
+  initialExtras = [],
+  initialNotes = '',
+  confirmLabel = 'AGREGAR AL CARRITO'
 }) => {
-  const [selectedExtras, setSelectedExtras] = useState<Extra[]>([]);
-  const [productNotes, setProductNotes] = useState('');
+  const [selectedExtras, setSelectedExtras] = useState<Extra[]>(initialExtras);
+  const [productNotes, setProductNotes] = useState(initialNotes);
 
   const toggleExtra = (extra: Extra) => {
     setSelectedExtras(prev => {
@@ -44,37 +50,70 @@ export const CustomizationModal: React.FC<CustomizationModalProps> = ({
         <p className="text-neutral-500 text-xs sm:text-sm font-bold uppercase tracking-widest mb-4 sm:mb-6">
           Selecciona tus extras
         </p>
+
+        {/* Prominent Cheddar Option */}
+        {product.extras?.find(e => e.id === 'extra-doble-cheddar') && (
+          <div className="mb-6">
+            <button
+              onClick={() => toggleExtra(product.extras!.find(e => e.id === 'extra-doble-cheddar')!)}
+              className={`w-full p-4 sm:p-5 rounded-2xl border-4 transition-all flex items-center justify-between group relative overflow-hidden ${selectedExtras.some(e => e.id === 'extra-doble-cheddar')
+                ? 'bg-yellow-400 border-yellow-400 text-black shadow-[0_0_30px_rgba(250,204,21,0.4)] scale-[1.02]'
+                : 'bg-neutral-900 border-yellow-400/30 hover:border-yellow-400 text-white'
+                }`}
+            >
+              <div className="flex items-center gap-4 z-10">
+                <div className={`w-8 h-8 rounded-full border-2 flex items-center justify-center transition-all ${selectedExtras.some(e => e.id === 'extra-doble-cheddar') ? 'bg-black border-black' : 'border-yellow-400'
+                  }`}>
+                  {selectedExtras.some(e => e.id === 'extra-doble-cheddar') && <Check size={18} className="text-yellow-400" strokeWidth={4} />}
+                </div>
+                <div className="text-left">
+                  <span className="font-bebas text-2xl sm:text-3xl tracking-wide block leading-none mb-1">¿PINTA DOBLE CHEDDAR? 🧀</span>
+                  <span className="text-xs font-bold uppercase opacity-80">¡Hacela todavía más bajonera!</span>
+                </div>
+              </div>
+              <span className={`font-black text-xl sm:text-2xl z-10 ${selectedExtras.some(e => e.id === 'extra-doble-cheddar') ? 'text-black' : 'text-yellow-400'}`}>
+                +$1.500
+              </span>
+
+              {/* Background gradient hint */}
+              {!selectedExtras.some(e => e.id === 'extra-doble-cheddar') && (
+                <div className="absolute inset-0 bg-gradient-to-r from-yellow-400/0 via-yellow-400/5 to-yellow-400/10 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+              )}
+            </button>
+          </div>
+        )}
+
         {product.extras && product.extras.length > 0 ? (
-          product.extras.map(extra => {
-            const isSelected = selectedExtras.some(e => e.id === extra.id);
-            return (
-              <button
-                key={extra.id}
-                onClick={() => toggleExtra(extra)}
-                className={`w-full p-4 sm:p-6 rounded-xl sm:rounded-2xl border-2 transition-all flex items-center justify-between group ${
-                  isSelected
+          product.extras
+            .filter(e => e.id !== 'extra-doble-cheddar')
+            .map(extra => {
+              const isSelected = selectedExtras.some(e => e.id === extra.id);
+              return (
+                <button
+                  key={extra.id}
+                  onClick={() => toggleExtra(extra)}
+                  className={`w-full p-4 sm:p-6 rounded-xl sm:rounded-2xl border-2 transition-all flex items-center justify-between group ${isSelected
                     ? 'bg-yellow-400 border-yellow-400 text-black shadow-lg scale-105'
                     : 'bg-neutral-800 border-white/10 hover:border-yellow-400/50 hover:bg-neutral-700'
-                }`}
-              >
-                <div className="flex items-center gap-3 sm:gap-4">
-                  <div className={`w-6 h-6 sm:w-8 sm:h-8 rounded-lg border-2 flex items-center justify-center transition-all ${
-                    isSelected ? 'bg-black border-black' : 'border-white/20 group-hover:border-yellow-400/50'
-                  }`}>
-                    {isSelected && <Check size={16} className="text-yellow-400 sm:w-[18px] sm:h-[18px]" />}
+                    }`}
+                >
+                  <div className="flex items-center gap-3 sm:gap-4">
+                    <div className={`w-6 h-6 sm:w-8 sm:h-8 rounded-lg border-2 flex items-center justify-center transition-all ${isSelected ? 'bg-black border-black' : 'border-white/20 group-hover:border-yellow-400/50'
+                      }`}>
+                      {isSelected && <Check size={16} className="text-yellow-400 sm:w-[18px] sm:h-[18px]" />}
+                    </div>
+                    <span className="font-black text-base sm:text-lg md:text-xl uppercase tracking-wide">{extra.name}</span>
                   </div>
-                  <span className="font-black text-base sm:text-lg md:text-xl uppercase tracking-wide">{extra.name}</span>
-                </div>
-                <span className={`font-black text-lg sm:text-xl md:text-2xl ${isSelected ? 'text-black' : 'text-yellow-400'}`}>
-                  +${extra.price.toLocaleString()}
-                </span>
-              </button>
-            );
-          })
+                  <span className={`font-black text-lg sm:text-xl md:text-2xl ${isSelected ? 'text-black' : 'text-yellow-400'}`}>
+                    +${extra.price.toLocaleString()}
+                  </span>
+                </button>
+              );
+            })
         ) : (
           <p className="text-neutral-600 italic text-center py-8">No hay extras disponibles para este producto.</p>
         )}
-        
+
         {/* Campo de observaciones */}
         <div className="pt-4 border-t border-white/10">
           <label className="flex items-center gap-2 text-white text-sm font-black mb-3 uppercase tracking-wide">
@@ -112,7 +151,7 @@ export const CustomizationModal: React.FC<CustomizationModalProps> = ({
             </div>
           )}
         </div>
-        
+
         <div className="flex justify-between items-center pt-3 sm:pt-4 border-t border-white/10">
           <p className="font-bebas text-2xl sm:text-3xl md:text-4xl tracking-widest italic">TOTAL</p>
           <p className="font-black text-3xl sm:text-4xl md:text-5xl text-yellow-400 italic">${totalPrice.toLocaleString()}</p>
@@ -124,7 +163,7 @@ export const CustomizationModal: React.FC<CustomizationModalProps> = ({
         >
           <Plus size={24} className="sm:hidden" />
           <Plus size={28} className="hidden sm:block" />
-          <span>AGREGAR AL CARRITO</span>
+          <span>{confirmLabel}</span>
         </button>
       </div>
     </Modal>
