@@ -20,6 +20,16 @@ const toSpanishFields = (product: any, isUpdate: boolean = false) => {
     categoria: String(product.category || '').trim(),
     extras: product.extras || [],
     combo: product.comboType ? String(product.comboType).trim() : null, // Asegurar que es string
+    // Campos de hamburguesas
+    hamburguesas_a_elegir: product.burgersToSelect && product.burgersToSelect > 0 ? parseInt(String(product.burgersToSelect), 10) : null,
+    allow_duplicate_burgers: product.allowDuplicateBurgers === true ? true : (product.allowDuplicateBurgers === false ? false : null),
+    // Campos de escalabilidad y promoción
+    priority_order: product.priorityOrder ? parseInt(String(product.priorityOrder), 10) : 0,
+    active_days: product.activeDays && Array.isArray(product.activeDays) ? product.activeDays : [],
+    discount_label: product.discountLabel ? String(product.discountLabel).trim() : null,
+    discount_percentage: product.discountPercentage ? parseFloat(String(product.discountPercentage)) : 0,
+    estimated_cost: product.estimatedCost ? parseInt(String(product.estimatedCost), 10) : null,
+    minimum_margin: product.minimumMargin ? parseFloat(String(product.minimumMargin)) : null,
   };
   
   // Solo incluir id si es un número válido o puede convertirse a número válido
@@ -59,6 +69,16 @@ const toEnglishFields = (product: any) => ({
   category: product.categoria,
   extras: product.extras || [],
   comboType: product.combo || undefined,
+  // Campos de hamburguesas
+  burgersToSelect: product.hamburguesas_a_elegir || undefined,
+  allowDuplicateBurgers: product.allow_duplicate_burgers !== null && product.allow_duplicate_burgers !== undefined ? product.allow_duplicate_burgers : undefined,
+  // Campos de escalabilidad
+  priorityOrder: product.priority_order || undefined,
+  activeDays: product.active_days || [],
+  discountLabel: product.discount_label || undefined,
+  discountPercentage: product.discount_percentage || undefined,
+  estimatedCost: product.estimated_cost || undefined,
+  minimumMargin: product.minimum_margin || undefined,
 });
 
 // Funciones para interactuar con la base de datos

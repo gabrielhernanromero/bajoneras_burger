@@ -624,6 +624,81 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ products, onClose, onSave }) =>
                                   />
                                 </div>
 
+                                {/* ===== SECCIÓN DE CONFIGURACIÓN AVANZADA DE PROMOS ===== */}
+                                <div className="bg-gradient-to-br from-purple-900/40 to-purple-800/20 border-2 border-purple-500/40 rounded-xl p-6 space-y-6">
+                                  <div className="flex items-center gap-2 pb-3 border-b border-purple-400/30">
+                                    <span className="text-2xl">🎯</span>
+                                    <h3 className="text-purple-300 font-black text-sm uppercase tracking-widest">Configurar Promoción Avanzada</h3>
+                                  </div>
+
+                                  {/* FILA 1: Cantidad de Hamburguesas */}
+                                  <div className="space-y-2">
+                                    <label className="text-purple-200 font-bold text-xs uppercase tracking-wider block">
+                                      📊 ¿Cuántas hamburguesas puede elegir el cliente?
+                                    </label>
+                                    <div className="grid grid-cols-5 gap-2">
+                                      {[0, 1, 2, 3, 4].map((num) => (
+                                        <button
+                                          key={num}
+                                          onClick={() => handleEditProduct(index, 'burgersToSelect', num)}
+                                          className={`py-3 rounded-lg font-bold text-sm transition border-2 ${
+                                            (editedProducts[index].burgersToSelect || 0) === num
+                                              ? 'bg-purple-600 border-purple-400 text-white shadow-lg shadow-purple-600/50'
+                                              : 'bg-neutral-700/50 border-neutral-600 text-neutral-300 hover:border-purple-400/50'
+                                          }`}
+                                        >
+                                          {num === 0 ? 'No' : num}
+                                        </button>
+                                      ))}
+                                    </div>
+                                    {editedProducts[index].burgersToSelect && editedProducts[index].burgersToSelect > 0 && (
+                                      <div className="mt-2 bg-purple-600/20 border border-purple-400/30 rounded-lg px-3 py-2">
+                                        <p className="text-purple-200 text-xs font-semibold">
+                                          ✨ El cliente elegirá <span className="font-black text-purple-300">{editedProducts[index].burgersToSelect}</span> hamburguesa{editedProducts[index].burgersToSelect > 1 ? 's' : ''}
+                                        </p>
+                                      </div>
+                                    )}
+                                  </div>
+
+                                  {/* FILA 2: Tipo de Hamburguesas */}
+                                  {editedProducts[index].burgersToSelect && editedProducts[index].burgersToSelect > 1 && (
+                                    <>
+                                      <div className="space-y-2 pt-3 border-t border-purple-400/30">
+                                        <label className="text-purple-200 font-bold text-xs uppercase tracking-wider block">
+                                          🔄 Tipo de hamburguesas permitidas
+                                        </label>
+                                        <div className="grid grid-cols-2 gap-3">
+                                          <button
+                                            onClick={() => handleEditProduct(index, 'allowDuplicateBurgers', true)}
+                                            className={`py-3 px-3 rounded-lg font-bold text-xs uppercase transition border-2 text-center ${
+                                              editedProducts[index].allowDuplicateBurgers === true
+                                                ? 'bg-green-600/80 border-green-400 text-white shadow-lg shadow-green-600/40'
+                                                : 'bg-neutral-700/50 border-neutral-600 text-neutral-300 hover:border-green-400/50'
+                                            }`}
+                                          >
+                                            <div className="text-lg mb-1">✅</div>
+                                            <div>Iguales o Diferentes</div>
+                                            <div className="text-xs opacity-75 mt-0.5">(2x Doble Bacon OK)</div>
+                                          </button>
+
+                                          <button
+                                            onClick={() => handleEditProduct(index, 'allowDuplicateBurgers', false)}
+                                            className={`py-3 px-3 rounded-lg font-bold text-xs uppercase transition border-2 text-center ${
+                                              editedProducts[index].allowDuplicateBurgers === false
+                                                ? 'bg-blue-600/80 border-blue-400 text-white shadow-lg shadow-blue-600/40'
+                                                : 'bg-neutral-700/50 border-neutral-600 text-neutral-300 hover:border-blue-400/50'
+                                            }`}
+                                          >
+                                            <div className="text-lg mb-1">🚫</div>
+                                            <div>Solo Diferentes</div>
+                                            <div className="text-xs opacity-75 mt-0.5">(Doble Bacon + Super Mell)</div>
+                                          </button>
+                                        </div>
+                                      </div>
+                                    </>
+                                  )}
+                                </div>
+
                                 <div>
                                   <label className="text-yellow-400 font-bold text-xs uppercase tracking-wider block mb-2">Imagen</label>
                                   <div

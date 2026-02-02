@@ -28,7 +28,7 @@ export const Modal: React.FC<ModalProps> = ({
   };
   
   return (
-    <div className="fixed inset-0 z-[70] flex items-center justify-center p-4 overflow-y-auto">
+    <div className="fixed inset-0 z-[110] flex items-center justify-center p-4 overflow-y-auto">
       <div className="absolute inset-0 bg-black/95 backdrop-blur-xl" onClick={onClose}></div>
       <div className={`relative w-full ${sizeClasses[size]} bg-neutral-900 rounded-[2rem] sm:rounded-[3rem] shadow-2xl animate-fade-in-up overflow-hidden border-2 border-yellow-400/30 my-8`}>
         {/* Header */}
