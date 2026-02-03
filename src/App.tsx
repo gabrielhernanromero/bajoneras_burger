@@ -225,11 +225,6 @@ export default function App() {
         />
       )}
 
-      {/* BANNER ARTELITO - RAMA DESARROLLO */}
-      <div className="w-full bg-gradient-to-r from-purple-600 via-pink-600 to-red-600 text-white py-3 text-center font-bold text-lg animate-pulse">
-        🎨 ¡ESTO VIENE DE LA RAMA DESARROLLO! 🎨
-      </div>
-
       {/* Header / Hero Section */}
       <header className="relative min-h-[55vh] flex flex-col items-center justify-center bg-black overflow-hidden py-12 sm:py-20">
         <div className="absolute inset-0 opacity-40 bg-[url('https://images.unsplash.com/photo-1550547660-d9450f859349?q=80&w=2000&auto=format&fit=crop')] bg-cover bg-fixed bg-center blur-sm scale-110"></div>

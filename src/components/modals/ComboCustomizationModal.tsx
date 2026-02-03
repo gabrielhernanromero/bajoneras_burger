@@ -21,9 +21,22 @@ export const ComboCustomizationModal: React.FC<ComboCustomizationModalProps> = (
   initialBurgers = [],
   confirmLabel = 'AGREGAR AL CARRITO'
 }) => {
-  const burgersCount = (combo.id === 'combo-bajonero-compartir' || combo.name.toLowerCase().includes('compartir')) ? 2 : 1;
+  const burgersCount = (combo as any).burgersToSelect || ((combo.id === 'combo-bajonero-compartir' || combo.name.toLowerCase().includes('compartir')) ? 2 : 1);
+  
   const availableBurgers = products
-    .filter(p => p.category === 'Burgers')
+    .filter(p => {
+      // Filtrar solo hamburguesas
+      if (p.category !== 'Burgers') return false;
+      
+      // Si el combo tiene hamburguesas específicas permitidas, filtrar por esas
+      const allowedBurgers = (combo as any).allowedBurgers as string[] | undefined;
+      if (allowedBurgers && allowedBurgers.length > 0) {
+        return allowedBurgers.includes(p.id);
+      }
+      
+      // Si no hay restricción, permitir todas
+      return true;
+    })
     .map(burger => {
       // INYECCIÓN DE EXTRAS LOCALES (IGUAL QUE EN APP.TSX):
       let localDef = PRODUCTS.find(p => p.id === burger.id);

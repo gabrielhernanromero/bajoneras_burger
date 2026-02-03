@@ -33,6 +33,7 @@ export interface Product {
   // Campos de hamburguesas
   burgersToSelect?: number; // Cantidad de hamburguesas que se pueden elegir
   allowDuplicateBurgers?: boolean; // Si permite elegir la misma hamburguesa varias veces
+  allowedBurgers?: string[]; // IDs de las hamburguesas permitidas en el combo
   // Campos de escalabilidad y promoción
   priorityOrder?: number; // Orden de prioridad en el menú
   activeDays?: string[]; // Días activos (ej: ["lunes", "martes", "miércoles"])
