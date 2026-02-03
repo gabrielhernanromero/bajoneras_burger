@@ -238,6 +238,7 @@ export default function App() {
           <div className="mt-8 space-y-3 sm:space-y-4 px-2">
             <h1 className="font-bebas text-5xl sm:text-6xl md:text-8xl tracking-widest text-white drop-shadow-2xl">BAJONERAS BURGER</h1>
             <p className="text-yellow-400 font-bold text-lg sm:text-2xl tracking-[0.3em] uppercase italic opacity-90 drop-shadow-lg">¡Uuuuh... hamburguesas!</p>
+            <div className="inline-block bg-green-500 text-white px-4 py-2 rounded-full text-sm font-bold animate-pulse">✅ Vercel Live Test</div>
           </div>
         </div>
 
