@@ -23,6 +23,7 @@ const toSpanishFields = (product: any, isUpdate: boolean = false) => {
     // Campos de hamburguesas
     hamburguesas_a_elegir: product.burgersToSelect && product.burgersToSelect > 0 ? parseInt(String(product.burgersToSelect), 10) : null,
     allow_duplicate_burgers: product.allowDuplicateBurgers === true ? true : (product.allowDuplicateBurgers === false ? false : null),
+    allowed_burgers: product.allowedBurgers && Array.isArray(product.allowedBurgers) ? product.allowedBurgers : [],
     // Campos de escalabilidad y promoción
     priority_order: product.priorityOrder ? parseInt(String(product.priorityOrder), 10) : 0,
     active_days: product.activeDays && Array.isArray(product.activeDays) ? product.activeDays : [],
@@ -72,6 +73,7 @@ const toEnglishFields = (product: any) => ({
   // Campos de hamburguesas
   burgersToSelect: product.hamburguesas_a_elegir || undefined,
   allowDuplicateBurgers: product.allow_duplicate_burgers !== null && product.allow_duplicate_burgers !== undefined ? product.allow_duplicate_burgers : undefined,
+  allowedBurgers: product.allowed_burgers || [],
   // Campos de escalabilidad
   priorityOrder: product.priority_order || undefined,
   activeDays: product.active_days || [],

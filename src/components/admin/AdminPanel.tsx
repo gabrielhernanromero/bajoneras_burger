@@ -827,6 +827,53 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ products, onClose, onSave }) =>
                                       </div>
                                     </>
                                   )}
+
+                                  {/* FILA 3: Selección de Hamburguesas Permitidas */}
+                                  {editedProducts[index].burgersToSelect && editedProducts[index].burgersToSelect > 0 && (
+                                    <div className="space-y-3 pt-3 border-t border-purple-400/30">
+                                      <label className="text-purple-200 font-bold text-xs uppercase tracking-wider block">
+                                        🍔 ¿Qué hamburguesas puede elegir el cliente?
+                                      </label>
+                                      <div className="grid grid-cols-1 gap-2 max-h-60 overflow-y-auto">
+                                        {editedProducts
+                                          .filter(p => p.category === 'Burgers')
+                                          .map(burger => {
+                                            const isSelected = (editedProducts[index].allowedBurgers || []).includes(burger.id);
+                                            return (
+                                              <button
+                                                key={burger.id}
+                                                onClick={() => {
+                                                  const currentAllowed = editedProducts[index].allowedBurgers || [];
+                                                  const newAllowed = isSelected
+                                                    ? currentAllowed.filter(id => id !== burger.id)
+                                                    : [...currentAllowed, burger.id];
+                                                  handleEditProduct(index, 'allowedBurgers', newAllowed);
+                                                }}
+                                                className={`p-3 rounded-lg border-2 transition-all text-left flex items-center gap-3 ${
+                                                  isSelected
+                                                    ? 'bg-green-600/80 border-green-400 text-white shadow-lg'
+                                                    : 'bg-neutral-700/50 border-neutral-600 text-neutral-300 hover:border-green-400/50'
+                                                }`}
+                                              >
+                                                <div className={`w-5 h-5 rounded border-2 flex items-center justify-center ${
+                                                  isSelected ? 'bg-white border-white' : 'border-neutral-400'
+                                                }`}>
+                                                  {isSelected && <span className="text-green-600 text-sm">✓</span>}
+                                                </div>
+                                                <span className="font-bold text-sm">{burger.name}</span>
+                                              </button>
+                                            );
+                                          })}
+                                      </div>
+                                      {editedProducts[index].allowedBurgers && editedProducts[index].allowedBurgers.length > 0 && (
+                                        <div className="mt-2 bg-green-600/20 border border-green-400/30 rounded-lg px-3 py-2">
+                                          <p className="text-green-200 text-xs font-semibold">
+                                            ✅ {editedProducts[index].allowedBurgers.length} hamburguesa{editedProducts[index].allowedBurgers.length > 1 ? 's' : ''} seleccionada{editedProducts[index].allowedBurgers.length > 1 ? 's' : ''}
+                                          </p>
+                                        </div>
+                                      )}
+                                    </div>
+                                  )}
                                 </div>
 
                                 <div>
