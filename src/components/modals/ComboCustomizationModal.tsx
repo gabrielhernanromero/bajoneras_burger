@@ -39,6 +39,9 @@ export const ComboCustomizationModal: React.FC<ComboCustomizationModalProps> = (
   const [currentExtras, setCurrentExtras] = useState<Extra[]>([]);
   const [currentNotes, setCurrentNotes] = useState('');
 
+  const formatExtraPrice = (price?: number) => (Number(price) || 0).toLocaleString();
+  const cheddarExtra = currentBurgerSelection?.extras?.find(e => e.id === 'extra-doble-cheddar');
+
   const toggleExtra = (extra: Extra) => {
     setCurrentExtras(prev => {
       const exists = prev.find(e => e.id === extra.id);
@@ -77,7 +80,7 @@ export const ComboCustomizationModal: React.FC<ComboCustomizationModalProps> = (
     }
   };
 
-  const totalExtrasPrice = currentExtras.reduce((sum, e) => sum + e.price, 0);
+  const totalExtrasPrice = currentExtras.reduce((sum, e) => sum + (Number(e.price) || 0), 0);
 
   return (
     <Modal
@@ -134,10 +137,10 @@ export const ComboCustomizationModal: React.FC<ComboCustomizationModalProps> = (
                     Extras (opcional)
                   </p>
                   {/* Prominent Cheddar Option for Combo */}
-                  {currentBurgerSelection.extras?.find(e => e.id === 'extra-doble-cheddar') && (
+                  {cheddarExtra && (
                     <div className="mb-4">
                       <button
-                        onClick={() => toggleExtra(currentBurgerSelection.extras!.find(e => e.id === 'extra-doble-cheddar')!)}
+                        onClick={() => toggleExtra(cheddarExtra)}
                         className={`w-full p-4 rounded-xl border-4 transition-all flex items-center justify-between group relative overflow-hidden ${currentExtras.some(e => e.id === 'extra-doble-cheddar')
                           ? 'bg-yellow-400 border-yellow-400 text-black shadow-[0_0_20px_rgba(250,204,21,0.4)] scale-[1.02]'
                           : 'bg-neutral-900 border-yellow-400/30 hover:border-yellow-400 text-white'
@@ -153,7 +156,7 @@ export const ComboCustomizationModal: React.FC<ComboCustomizationModalProps> = (
                           </div>
                         </div>
                         <span className={`font-black text-lg sm:text-xl z-10 ${currentExtras.some(e => e.id === 'extra-doble-cheddar') ? 'text-black' : 'text-yellow-400'}`}>
-                          +$1.500
+                          +${formatExtraPrice(cheddarExtra.price)}
                         </span>
 
                         {/* Background gradient hint */}
@@ -186,7 +189,7 @@ export const ComboCustomizationModal: React.FC<ComboCustomizationModalProps> = (
                               <span className="font-black text-sm sm:text-base uppercase">{extra.name}</span>
                             </div>
                             <span className={`font-black text-base sm:text-lg ${isSelected ? 'text-black' : 'text-yellow-400'}`}>
-                              +${extra.price.toLocaleString()}
+                              +${formatExtraPrice(extra.price)}
                             </span>
                           </button>
                         );

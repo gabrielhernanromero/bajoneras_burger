@@ -29,6 +29,16 @@ export default function App() {
   const [comboCarouselIndex, setComboCarouselIndex] = useState(0);
   const [showAdminPanel, setShowAdminPanel] = useState(false);
 
+  const getFallbackExtrasByCategory = (category?: string) => {
+    if (!category) return undefined;
+    const normalizedCategory = category.trim().toLowerCase();
+    const extrasPool = PRODUCTS.filter(p => p.extras && p.extras.length > 0 && p.category.trim().toLowerCase() === normalizedCategory)
+      .flatMap(p => p.extras || []);
+    if (extrasPool.length === 0) return undefined;
+    const unique = new Map(extrasPool.map(extra => [extra.id, extra]));
+    return Array.from(unique.values());
+  };
+
   // Detectar acceso admin
   useEffect(() => {
     const checkAdmin = () => {
@@ -72,20 +82,16 @@ export default function App() {
 
   // Handlers
   const handleAddToCart = (product: Product) => {
-    // INYECCIÓN DE EXTRAS LOCALES:
-    // Buscamos la definición local de este producto para usar sus extras actualizados
-    // aunque la imagen venga de Supabase.
-    let localDef = PRODUCTS.find(p => p.id === product.id);
-    if (!localDef) {
-      // Fallback por nombre si el ID no coincide
-      localDef = PRODUCTS.find(p => p.name.trim().toLowerCase() === product.name.trim().toLowerCase());
-    }
+    const localDef = PRODUCTS.find(p => p.id === product.id)
+      || PRODUCTS.find(p => p.name.trim().toLowerCase() === product.name.trim().toLowerCase());
 
-    const productWithExtras = localDef ? {
-      ...product,
-      extras: localDef.extras,
-      price: localDef.price // Aseguramos usar el precio local también
-    } : product;
+    const effectiveExtras = (product.extras && product.extras.length > 0)
+      ? product.extras
+      : (localDef?.extras || getFallbackExtrasByCategory(product.category));
+
+    const productWithExtras = effectiveExtras
+      ? { ...product, extras: effectiveExtras }
+      : product;
 
     if (productWithExtras.category === 'Combos') {
       setCustomizingCombo(productWithExtras);
@@ -103,16 +109,19 @@ export default function App() {
     // 2. Setear ID de edición
     setEditingCartItemId(item.cartItemId || null);
 
-    // 3. Buscar definición local (inyección)
-    let localDef = PRODUCTS.find(p => p.id === item.id);
-    if (!localDef) {
-      localDef = PRODUCTS.find(p => p.name.trim().toLowerCase() === item.name.trim().toLowerCase());
-    }
-    const productWithExtras = localDef ? {
-      ...item,
-      extras: localDef.extras,
-      price: localDef.price
-    } : item;
+    // 3. Buscar definición desde el estado (admin) y fallback local
+    const stateDef = products.find(p => p.id === item.id)
+      || products.find(p => p.name.trim().toLowerCase() === item.name.trim().toLowerCase());
+    const localDef = PRODUCTS.find(p => p.id === item.id)
+      || PRODUCTS.find(p => p.name.trim().toLowerCase() === item.name.trim().toLowerCase());
+
+    const effectiveExtras = (stateDef?.extras && stateDef.extras.length > 0)
+      ? stateDef.extras
+      : (localDef?.extras || getFallbackExtrasByCategory(item.category));
+
+    const productWithExtras = effectiveExtras
+      ? { ...item, extras: effectiveExtras }
+      : item;
 
     // 4. Abrir modal correspondiente pre-cargado
     if (item.category === 'Combos') {
