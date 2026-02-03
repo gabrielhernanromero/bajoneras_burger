@@ -23,6 +23,9 @@ export const CustomizationModal: React.FC<CustomizationModalProps> = ({
   const [selectedExtras, setSelectedExtras] = useState<Extra[]>(initialExtras);
   const [productNotes, setProductNotes] = useState(initialNotes);
 
+  const formatExtraPrice = (price?: number) => (Number(price) || 0).toLocaleString();
+  const cheddarExtra = product.extras?.find(e => e.id === 'extra-doble-cheddar');
+
   const toggleExtra = (extra: Extra) => {
     setSelectedExtras(prev => {
       const exists = prev.find(e => e.id === extra.id);
@@ -34,7 +37,7 @@ export const CustomizationModal: React.FC<CustomizationModalProps> = ({
     });
   };
 
-  const totalExtrasPrice = selectedExtras.reduce((sum, e) => sum + e.price, 0);
+  const totalExtrasPrice = selectedExtras.reduce((sum, e) => sum + (Number(e.price) || 0), 0);
   const totalPrice = product.price + totalExtrasPrice;
 
   return (
@@ -52,10 +55,10 @@ export const CustomizationModal: React.FC<CustomizationModalProps> = ({
         </p>
 
         {/* Prominent Cheddar Option */}
-        {product.extras?.find(e => e.id === 'extra-doble-cheddar') && (
+        {cheddarExtra && (
           <div className="mb-6">
             <button
-              onClick={() => toggleExtra(product.extras!.find(e => e.id === 'extra-doble-cheddar')!)}
+              onClick={() => toggleExtra(cheddarExtra)}
               className={`w-full p-4 sm:p-5 rounded-2xl border-4 transition-all flex items-center justify-between group relative overflow-hidden ${selectedExtras.some(e => e.id === 'extra-doble-cheddar')
                 ? 'bg-yellow-400 border-yellow-400 text-black shadow-[0_0_30px_rgba(250,204,21,0.4)] scale-[1.02]'
                 : 'bg-neutral-900 border-yellow-400/30 hover:border-yellow-400 text-white'
@@ -72,7 +75,7 @@ export const CustomizationModal: React.FC<CustomizationModalProps> = ({
                 </div>
               </div>
               <span className={`font-black text-xl sm:text-2xl z-10 ${selectedExtras.some(e => e.id === 'extra-doble-cheddar') ? 'text-black' : 'text-yellow-400'}`}>
-                +$1.500
+                +${formatExtraPrice(cheddarExtra.price)}
               </span>
 
               {/* Background gradient hint */}
@@ -105,7 +108,7 @@ export const CustomizationModal: React.FC<CustomizationModalProps> = ({
                     <span className="font-black text-base sm:text-lg md:text-xl uppercase tracking-wide">{extra.name}</span>
                   </div>
                   <span className={`font-black text-lg sm:text-xl md:text-2xl ${isSelected ? 'text-black' : 'text-yellow-400'}`}>
-                    +${extra.price.toLocaleString()}
+                    +${formatExtraPrice(extra.price)}
                   </span>
                 </button>
               );

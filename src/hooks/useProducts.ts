@@ -7,6 +7,16 @@ export const useProducts = () => {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
 
+  const getFallbackExtrasByCategory = (category?: string) => {
+    if (!category) return undefined;
+    const normalizedCategory = category.trim().toLowerCase();
+    const extrasPool = PRODUCTS.filter(p => p.extras && p.extras.length > 0 && p.category.trim().toLowerCase() === normalizedCategory)
+      .flatMap(p => p.extras || []);
+    if (extrasPool.length === 0) return undefined;
+    const unique = new Map(extrasPool.map(extra => [extra.id, extra]));
+    return Array.from(unique.values());
+  };
+
   useEffect(() => {
     const loadProducts = async () => {
       try {
@@ -15,7 +25,20 @@ export const useProducts = () => {
 
         if (supabaseProducts && supabaseProducts.length > 0) {
           console.log('Productos cargados de Supabase:', supabaseProducts);
-          setProducts(supabaseProducts);
+          const mergedProducts = supabaseProducts.map((product) => {
+            if (product.extras && product.extras.length > 0) return product;
+            const localDef = PRODUCTS.find(p => p.id === product.id)
+              || PRODUCTS.find(p => p.name.trim().toLowerCase() === product.name.trim().toLowerCase());
+            if (localDef?.extras && localDef.extras.length > 0) {
+              return { ...product, extras: localDef.extras };
+            }
+            const categoryExtras = getFallbackExtrasByCategory(product.category);
+            if (categoryExtras && categoryExtras.length > 0) {
+              return { ...product, extras: categoryExtras };
+            }
+            return product;
+          });
+          setProducts(mergedProducts);
         } else {
           console.warn('No hay productos en Supabase, usando datos locales');
           setProducts(PRODUCTS);

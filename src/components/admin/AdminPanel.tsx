@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { X, Edit2, Save, Trash2, Plus, Eye, EyeOff, Upload, Grid, List, Package, LogOut } from 'lucide-react';
 import { Product, Extra } from '../../types';
+import { PRODUCTS } from '../../constants';
 import { supabaseService } from '../../services';
 import { compressImage } from '../../utils';
 
@@ -33,10 +34,34 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ products, onClose, onSave }) =>
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [customCategories, setCustomCategories] = useState<Set<string>>(new Set());
 
+  const getFallbackExtrasByCategory = (category?: string) => {
+    if (!category) return undefined;
+    const normalizedCategory = category.trim().toLowerCase();
+    const extrasPool = PRODUCTS.filter(p => p.extras && p.extras.length > 0 && p.category.trim().toLowerCase() === normalizedCategory)
+      .flatMap(p => p.extras || []);
+    if (extrasPool.length === 0) return undefined;
+    const unique = new Map(extrasPool.map(extra => [extra.id, extra]));
+    return Array.from(unique.values());
+  };
+
   // Sincronizar editedProducts cuando cambian los products del padre
   React.useEffect(() => {
     console.log('AdminPanel: Sincronizando productos del padre:', products);
-    setEditedProducts(products);
+    const normalizeName = (value: string) => value.trim().toLowerCase().replace(/\s+/g, ' ');
+    const mergedProducts = products.map((product) => {
+      if (product.extras && product.extras.length > 0) return product;
+      const localDef = PRODUCTS.find(p => p.id === product.id)
+        || PRODUCTS.find(p => normalizeName(p.name) === normalizeName(product.name));
+      if (localDef?.extras && localDef.extras.length > 0) {
+        return { ...product, extras: localDef.extras };
+      }
+      const categoryExtras = getFallbackExtrasByCategory(product.category);
+      if (categoryExtras && categoryExtras.length > 0) {
+        return { ...product, extras: categoryExtras };
+      }
+      return product;
+    });
+    setEditedProducts(mergedProducts);
   }, [products]);
 
   // Obtener categorías únicas de los productos con orden específico
@@ -135,6 +160,38 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ products, onClose, onSave }) =>
     });
   };
 
+<<<<<<< HEAD
+=======
+  const updateExtraField = (productIdx: number, extraId: string, field: keyof Extra, value: string | number) => {
+    setEditedProducts((prev) => {
+      const updated = [...prev];
+      const extrasToUpdate = updated[productIdx].extras || [];
+      const extraToUpdate = extrasToUpdate.find(ex => ex.id === extraId);
+      if (extraToUpdate) {
+        (extraToUpdate as any)[field] = value;
+      }
+      updated[productIdx] = { ...updated[productIdx], extras: extrasToUpdate };
+      return updated;
+    });
+  };
+
+  const addExtraToProduct = (productIdx: number) => {
+    const newExtra: Extra = {
+      id: `extra-${Date.now()}`,
+      name: 'Nuevo Extra',
+      price: 1000
+    };
+
+    setEditedProducts((prev) => {
+      const updated = [...prev];
+      const extras = updated[productIdx].extras ? [...updated[productIdx].extras!] : [];
+      extras.push(newExtra);
+      updated[productIdx] = { ...updated[productIdx], extras };
+      return updated;
+    });
+  };
+
+>>>>>>> desarrollo
   const handleDrag = (e: React.DragEvent) => {
     e.preventDefault();
     e.stopPropagation();
@@ -644,6 +701,72 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ products, onClose, onSave }) =>
                                   />
                                 </div>
 
+                                {/* ===== SECCIÓN DE GESTIÓN DE EXTRAS ===== */}
+                                <div className="bg-gradient-to-br from-orange-900/40 to-orange-800/20 border-2 border-orange-500/40 rounded-xl p-6 space-y-4">
+                                  <div className="flex items-center gap-2 pb-3 border-b border-orange-400/30">
+                                    <span className="text-2xl">🌶️</span>
+                                    <h3 className="text-orange-300 font-black text-sm uppercase tracking-widest">Extras del Producto</h3>
+                                    {editedProducts[index].extras && editedProducts[index].extras.length > 0 && (
+                                      <span className="bg-orange-600 text-white px-2 py-1 rounded-full text-xs font-bold">{editedProducts[index].extras.length}</span>
+                                    )}
+                                  </div>
+
+                                  <div className="space-y-2">
+                                    {(editedProducts[index].extras && editedProducts[index].extras.length > 0) ? (
+                                      editedProducts[index].extras!.map((extra) => (
+                                        <div key={extra.id} className="bg-neutral-700/40 p-3 rounded-lg space-y-2">
+                                          <div className="flex gap-2 items-center">
+                                            <input
+                                              type="text"
+                                              value={extra.name}
+                                              onChange={(e) => updateExtraField(index, extra.id, 'name', e.target.value)}
+                                              placeholder="Nombre del extra"
+                                              className="flex-1 bg-neutral-600/50 border border-orange-400/30 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-orange-400 transition"
+                                            />
+
+                                            <button
+                                              type="button"
+                                              onClick={() => removeExtraFromProduct(index, extra.id)}
+                                              className="bg-red-600/20 border border-red-500/30 text-red-400 py-2 px-3 rounded-lg hover:bg-red-600/30 transition"
+                                              title="Eliminar extra"
+                                            >
+                                              <Trash2 size={18} />
+                                            </button>
+                                          </div>
+
+                                          <div className="relative">
+                                            <span className="absolute left-3 top-2.5 text-orange-400 font-bold">$</span>
+                                            <input
+                                              type="text"
+                                              value={extra.price ? Number(extra.price).toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.') : '0'}
+                                              onFocus={(e) => e.target.select()}
+                                              onChange={(e) => {
+                                                const numericValue = e.target.value.replace(/\./g, '');
+                                                if (/^\d*$/.test(numericValue)) {
+                                                  updateExtraField(index, extra.id, 'price', parseInt(numericValue) || 0);
+                                                }
+                                              }}
+                                              placeholder="0"
+                                              className="w-full bg-neutral-600/50 border border-orange-400/30 rounded-lg pl-8 pr-3 py-2 text-white font-bold focus:outline-none focus:border-orange-400 transition"
+                                            />
+                                          </div>
+                                        </div>
+                                      ))
+                                    ) : (
+                                      <p className="text-neutral-500 text-sm italic text-center py-3">Sin extras agregados</p>
+                                    )}
+                                  </div>
+
+                                  <button
+                                    type="button"
+                                    onClick={() => addExtraToProduct(index)}
+                                    className="w-full bg-green-600/20 border border-green-500/30 text-green-400 py-3 rounded-lg hover:bg-green-600/30 transition font-bold flex items-center justify-center gap-2"
+                                  >
+                                    <Plus size={20} />
+                                    Agregar Extra
+                                  </button>
+                                </div>
+
                                 {/* ===== SECCIÓN DE CONFIGURACIÓN AVANZADA DE PROMOS ===== */}
                                 <div className="bg-gradient-to-br from-purple-900/40 to-purple-800/20 border-2 border-purple-500/40 rounded-xl p-6 space-y-6">
                                   <div className="flex items-center gap-2 pb-3 border-b border-purple-400/30">
@@ -876,9 +999,8 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ products, onClose, onSave }) =>
                                   <button
                                     onClick={async () => {
                                       try {
-                                        await supabaseService.replaceAllProducts(editedProducts);
+                                        await onSave(editedProducts);
                                         setEditingIndex(null);
-                                        alert('✅ Producto guardado exitosamente');
                                       } catch (error) {
                                         console.error('Error guardando:', error);
                                         alert('❌ Error al guardar el producto');

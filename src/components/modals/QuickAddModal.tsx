@@ -19,6 +19,8 @@ export const QuickAddModal: React.FC<QuickAddModalProps> = ({
   const [selectedExtras, setSelectedExtras] = useState<Extra[]>(currentExtras);
   const [productNotes, setProductNotes] = useState('');
 
+  const formatExtraPrice = (price?: number) => (Number(price) || 0).toLocaleString();
+
   const toggleExtra = (extra: Extra) => {
     setSelectedExtras(prev => {
       const exists = prev.find(e => e.id === extra.id);
@@ -30,7 +32,7 @@ export const QuickAddModal: React.FC<QuickAddModalProps> = ({
     });
   };
 
-  const totalExtrasPrice = selectedExtras.reduce((sum, e) => sum + e.price, 0);
+  const totalExtrasPrice = selectedExtras.reduce((sum, e) => sum + (Number(e.price) || 0), 0);
   const totalPrice = product.price + totalExtrasPrice;
 
   return (
@@ -68,7 +70,7 @@ export const QuickAddModal: React.FC<QuickAddModalProps> = ({
                   <span className="font-black text-base sm:text-lg md:text-xl uppercase tracking-wide">{extra.name}</span>
                 </div>
                 <span className={`font-black text-lg sm:text-xl md:text-2xl ${isSelected ? 'text-black' : 'text-yellow-400'}`}>
-                  +${extra.price.toLocaleString()}
+                  +${formatExtraPrice(extra.price)}
                 </span>
               </button>
             );
