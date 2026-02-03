@@ -138,6 +138,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ products, onClose, onSave }) =>
 
   // Funciones para manejar extras
   const toggleExtraForProduct = (productIdx: number, extra: Extra) => {
+    console.log('🔄 toggleExtra:', { productIdx, extraId: extra.id });
     setEditedProducts((prev) => {
       const product = prev[productIdx];
       const currentExtras = product.extras ?? [];
@@ -145,29 +146,35 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ products, onClose, onSave }) =>
       const nextExtras = exists
         ? currentExtras.filter(e => e.id !== extra.id)
         : [...currentExtras, { ...extra }];
+      console.log('✅ Nuevo estado de extras:', nextExtras);
       return prev.map((p, i) => i === productIdx ? { ...p, extras: nextExtras } : p);
     });
   };
 
   const updateExtraPrice = (productIdx: number, extraId: string, newPrice: number) => {
+    console.log('💰 updateExtraPrice:', { productIdx, extraId, newPrice });
     setEditedProducts((prev) => {
       const product = prev[productIdx];
       const currentExtras = product.extras ?? [];
       const nextExtras = currentExtras.map(e => e.id === extraId ? { ...e, price: newPrice } : e);
+      console.log('✅ Precio actualizado:', nextExtras);
       return prev.map((p, i) => i === productIdx ? { ...p, extras: nextExtras } : p);
     });
   };
 
   const removeExtraFromProduct = (productIdx: number, extraId: string) => {
+    console.log('❌ removeExtra:', { productIdx, extraId });
     setEditedProducts((prev) => {
       const product = prev[productIdx];
       const currentExtras = product.extras ?? [];
       const nextExtras = currentExtras.filter(e => e.id !== extraId);
+      console.log('✅ Extra removido:', nextExtras);
       return prev.map((p, i) => i === productIdx ? { ...p, extras: nextExtras } : p);
     });
   };
 
   const addNewExtraToProduct = (productIdx: number, name: string, price: number) => {
+    console.log('➕ addNewExtra:', { productIdx, name, price });
     if (!name.trim() || price <= 0) {
       alert('⚠️ Completa el nombre y precio del extra');
       return;
@@ -183,6 +190,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ products, onClose, onSave }) =>
       const product = prev[productIdx];
       const currentExtras = product.extras ?? [];
       const nextExtras = [...currentExtras, newExtra];
+      console.log('✅ Extra agregado:', nextExtras);
       return prev.map((p, i) => i === productIdx ? { ...p, extras: nextExtras } : p);
     });
   };
@@ -853,7 +861,12 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ products, onClose, onSave }) =>
                                               <button
                                                 type="button"
                                                 key={availableExtra.id}
-                                                onClick={() => toggleExtraForProduct(index, availableExtra)}
+                                                onClick={(e) => {
+                                                  e.preventDefault();
+                                                  e.stopPropagation();
+                                                  console.log('✅ CLICK en botón de extra:', availableExtra.id);
+                                                  toggleExtraForProduct(index, availableExtra);
+                                                }}
                                                 className={`w-full p-3 rounded-lg border-2 transition flex items-center justify-between font-bold text-sm ${
                                                   isSelected
                                                     ? 'bg-orange-600/30 border-orange-400 text-orange-100'
