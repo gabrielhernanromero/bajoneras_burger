@@ -5,16 +5,6 @@ import { PRODUCTS } from '../../constants';
 import { supabaseService } from '../../services';
 import { compressImage } from '../../utils';
 
-// Definir todos los extras disponibles globales
-const AVAILABLE_EXTRAS: Extra[] = [
-  { id: 'extra-doble-cheddar', name: 'Doble Cheddar', price: 1500 },
-  { id: 'extra-doble-bacon', name: 'Doble Bacon', price: 1500 },
-  { id: 'extra-medallon', name: 'Medallón Extra 120g', price: 3000 },
-  { id: 'extra-cheddar-papas', name: 'Cheddar en Papas', price: 2000 },
-  { id: 'extra-bacon-papas', name: 'Bacon en Papas', price: 2000 },
-  { id: 'extra-cheddar-bacon-papas', name: 'Cheddar y Bacon en Papas', price: 3000 },
-];
-
 interface AdminPanelProps {
   products: Product[];
   onClose: () => void;
@@ -160,8 +150,6 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ products, onClose, onSave }) =>
     });
   };
 
-<<<<<<< HEAD
-=======
   const updateExtraField = (productIdx: number, extraId: string, field: keyof Extra, value: string | number) => {
     setEditedProducts((prev) => {
       const updated = [...prev];
@@ -191,7 +179,6 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ products, onClose, onSave }) =>
     });
   };
 
->>>>>>> desarrollo
   const handleDrag = (e: React.DragEvent) => {
     e.preventDefault();
     e.stopPropagation();
@@ -893,106 +880,6 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ products, onClose, onSave }) =>
                                       className="w-full bg-neutral-600/50 border border-yellow-400/20 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-yellow-400/50 transition"
                                     />
                                   </div>
-                                </div>
-
-                                {/* ===== SECCIÓN DE GESTIÓN DE EXTRAS (SIMPLIFICADA) ===== */}
-                                <div className="bg-gradient-to-br from-orange-900/40 to-orange-800/20 border-2 border-orange-500/40 rounded-xl p-6 space-y-4">
-                                  <div className="flex items-center gap-2 pb-3 border-b border-orange-400/30">
-                                    <span className="text-2xl">🌶️</span>
-                                    <h3 className="text-orange-300 font-black text-sm uppercase tracking-widest">Extras del Producto</h3>
-                                    {editedProducts[index].extras && editedProducts[index].extras.length > 0 && (
-                                      <span className="bg-orange-600 text-white px-2 py-1 rounded-full text-xs font-bold">{editedProducts[index].extras.length}</span>
-                                    )}
-                                  </div>
-
-                                  {/* Lista de extras editable */}
-                                  <div className="space-y-2">
-                                    {(editedProducts[index].extras && editedProducts[index].extras.length > 0) ? (
-                                      editedProducts[index].extras!.map((extra) => (
-                                        <div key={extra.id} className="flex gap-2 items-center bg-neutral-700/40 p-3 rounded-lg">
-                                          {/* Nombre */}
-                                          <input
-                                            type="text"
-                                            value={extra.name}
-                                            onChange={(e) => {
-                                              setEditedProducts((prev) => {
-                                                const updated = [...prev];
-                                                const extrasToUpdate = updated[index].extras || [];
-                                                const extraToUpdate = extrasToUpdate.find(ex => ex.id === extra.id);
-                                                if (extraToUpdate) {
-                                                  extraToUpdate.name = e.target.value;
-                                                }
-                                                return updated;
-                                              });
-                                            }}
-                                            placeholder="Nombre del extra"
-                                            className="flex-1 bg-neutral-600/50 border border-orange-400/30 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-orange-400 transition"
-                                          />
-
-                                          {/* Precio */}
-                                          <div className="w-32 relative">
-                                            <span className="absolute left-2 top-2 text-orange-400 font-bold text-sm">$</span>
-                                            <input
-                                              type="text"
-                                              value={extra.price.toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.')}
-                                              onChange={(e) => {
-                                                const numericValue = e.target.value.replace(/\./g, '');
-                                                if (/^\d*$/.test(numericValue)) {
-                                                  setEditedProducts((prev) => {
-                                                    const updated = [...prev];
-                                                    const extrasToUpdate = updated[index].extras || [];
-                                                    const extraToUpdate = extrasToUpdate.find(ex => ex.id === extra.id);
-                                                    if (extraToUpdate) {
-                                                      extraToUpdate.price = parseInt(numericValue) || 0;
-                                                    }
-                                                    return updated;
-                                                  });
-                                                }
-                                              }}
-                                              placeholder="0"
-                                              className="w-full bg-neutral-600/50 border border-orange-400/30 rounded-lg pl-7 pr-2 py-2 text-white font-bold text-sm focus:outline-none focus:border-orange-400 transition"
-                                            />
-                                          </div>
-
-                                          {/* Botón eliminar */}
-                                          <button
-                                            type="button"
-                                            onClick={() => removeExtraFromProduct(index, extra.id)}
-                                            className="bg-red-600/20 border border-red-500/30 text-red-400 py-2 px-3 rounded-lg hover:bg-red-600/30 transition"
-                                            title="Eliminar extra"
-                                          >
-                                            <Trash2 size={18} />
-                                          </button>
-                                        </div>
-                                      ))
-                                    ) : (
-                                      <p className="text-neutral-500 text-sm italic text-center py-3">Sin extras agregados</p>
-                                    )}
-                                  </div>
-
-                                  {/* Botón agregar extra */}
-                                  <button
-                                    type="button"
-                                    onClick={() => {
-                                      const newExtra: Extra = {
-                                        id: `extra-${Date.now()}`,
-                                        name: 'Nuevo Extra',
-                                        price: 1000
-                                      };
-                                      setEditedProducts((prev) => {
-                                        const updated = [...prev];
-                                        if (!updated[index].extras) {
-                                          updated[index].extras = [];
-                                        }
-                                        updated[index].extras!.push(newExtra);
-                                        return updated;
-                                      });
-                                    }}
-                                    className="w-full bg-green-600/20 border border-green-500/30 text-green-400 py-3 rounded-lg hover:bg-green-600/30 transition font-bold flex items-center justify-center gap-2"
-                                  >
-                                    <Plus size={20} />
-                                    Agregar Extra
-                                  </button>
                                 </div>
 
                                 <div className="flex gap-2 pt-3 border-t border-neutral-700/50">
