@@ -138,36 +138,33 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ products, onClose, onSave }) =>
 
   // Funciones para manejar extras
   const toggleExtraForProduct = (productIdx: number, extra: Extra) => {
-    const product = editedProducts[productIdx];
-    const existingExtra = product.extras?.find(e => e.id === extra.id);
-    
-    const updated = [...editedProducts];
-    if (!updated[productIdx].extras) {
-      updated[productIdx].extras = [];
-    }
-    
-    if (existingExtra) {
-      updated[productIdx].extras = updated[productIdx].extras!.filter(e => e.id !== extra.id);
-    } else {
-      updated[productIdx].extras = [...updated[productIdx].extras!, { ...extra }];
-    }
-    
-    setEditedProducts(updated);
+    setEditedProducts((prev) => {
+      const product = prev[productIdx];
+      const currentExtras = product.extras ?? [];
+      const exists = currentExtras.some(e => e.id === extra.id);
+      const nextExtras = exists
+        ? currentExtras.filter(e => e.id !== extra.id)
+        : [...currentExtras, { ...extra }];
+      return prev.map((p, i) => i === productIdx ? { ...p, extras: nextExtras } : p);
+    });
   };
 
   const updateExtraPrice = (productIdx: number, extraId: string, newPrice: number) => {
-    const updated = [...editedProducts];
-    const extra = updated[productIdx].extras?.find(e => e.id === extraId);
-    if (extra) {
-      extra.price = newPrice;
-      setEditedProducts(updated);
-    }
+    setEditedProducts((prev) => {
+      const product = prev[productIdx];
+      const currentExtras = product.extras ?? [];
+      const nextExtras = currentExtras.map(e => e.id === extraId ? { ...e, price: newPrice } : e);
+      return prev.map((p, i) => i === productIdx ? { ...p, extras: nextExtras } : p);
+    });
   };
 
   const removeExtraFromProduct = (productIdx: number, extraId: string) => {
-    const updated = [...editedProducts];
-    updated[productIdx].extras = updated[productIdx].extras?.filter(e => e.id !== extraId) || [];
-    setEditedProducts(updated);
+    setEditedProducts((prev) => {
+      const product = prev[productIdx];
+      const currentExtras = product.extras ?? [];
+      const nextExtras = currentExtras.filter(e => e.id !== extraId);
+      return prev.map((p, i) => i === productIdx ? { ...p, extras: nextExtras } : p);
+    });
   };
 
   const addNewExtraToProduct = (productIdx: number, name: string, price: number) => {
@@ -175,20 +172,19 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ products, onClose, onSave }) =>
       alert('⚠️ Completa el nombre y precio del extra');
       return;
     }
-    
-    const updated = [...editedProducts];
-    if (!updated[productIdx].extras) {
-      updated[productIdx].extras = [];
-    }
-    
+
     const newExtra: Extra = {
       id: `extra-${Date.now()}`,
       name: name.trim(),
       price: price
     };
-    
-    updated[productIdx].extras.push(newExtra);
-    setEditedProducts(updated);
+
+    setEditedProducts((prev) => {
+      const product = prev[productIdx];
+      const currentExtras = product.extras ?? [];
+      const nextExtras = [...currentExtras, newExtra];
+      return prev.map((p, i) => i === productIdx ? { ...p, extras: nextExtras } : p);
+    });
   };
 
   const handleDrag = (e: React.DragEvent) => {
@@ -831,6 +827,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ products, onClose, onSave }) =>
                                 {/* ===== SECCIÓN DE GESTIÓN DE EXTRAS ===== */}
                                 <div className="bg-gradient-to-br from-orange-900/40 to-orange-800/20 border-2 border-orange-500/40 rounded-xl p-6 space-y-4">
                                   <button
+                                    type="button"
                                     onClick={() => setExpandedExtrasIndex(expandedExtrasIndex === index ? null : index)}
                                     className="w-full flex items-center justify-between pb-3 border-b border-orange-400/30 hover:opacity-80 transition"
                                   >
@@ -854,6 +851,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ products, onClose, onSave }) =>
                                             const isSelected = editedProducts[index].extras?.some(e => e.id === availableExtra.id);
                                             return (
                                               <button
+                                                type="button"
                                                 key={availableExtra.id}
                                                 onClick={() => toggleExtraForProduct(index, availableExtra)}
                                                 className={`w-full p-3 rounded-lg border-2 transition flex items-center justify-between font-bold text-sm ${
@@ -896,6 +894,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ products, onClose, onSave }) =>
                                                       />
                                                     </div>
                                                     <button
+                                                      type="button"
                                                       onClick={() => removeExtraFromProduct(index, extra.id)}
                                                       className="bg-red-600/20 border border-red-500/30 text-red-400 py-2 px-3 rounded-lg hover:bg-red-600/30 transition"
                                                       title="Remover extra"
@@ -932,6 +931,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ products, onClose, onSave }) =>
                                                 />
                                               </div>
                                               <button
+                                                type="button"
                                                 onClick={() => {
                                                   const nameInput = document.getElementById(`custom-extra-name-${index}`) as HTMLInputElement;
                                                   const priceInput = document.getElementById(`custom-extra-price-${index}`) as HTMLInputElement;
