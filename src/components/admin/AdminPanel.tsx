@@ -41,6 +41,15 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ products, onClose, onSave }) =>
     setEditedProducts(products);
   }, [products]);
 
+  // Abrir automáticamente la sección de extras al editar
+  React.useEffect(() => {
+    if (editingIndex !== null) {
+      setExpandedExtrasIndex(editingIndex);
+    } else {
+      setExpandedExtrasIndex(null);
+    }
+  }, [editingIndex]);
+
   // Obtener categorías únicas de los productos con orden específico
   const getCategoriesInOrder = () => {
     // Obtener categorías de los productos
