@@ -1,8 +1,18 @@
 import React, { useState } from 'react';
-import { X, Edit2, Save, Trash2, Plus, Eye, EyeOff, Upload, Grid, List, Package, LogOut } from 'lucide-react';
-import { Product } from '../../types';
+import { X, Edit2, Save, Trash2, Plus, Eye, EyeOff, Upload, Grid, List, Package, LogOut, ChevronDown, ChevronUp } from 'lucide-react';
+import { Product, Extra } from '../../types';
 import { supabaseService } from '../../services';
 import { compressImage } from '../../utils';
+
+// Definir todos los extras disponibles globales
+const AVAILABLE_EXTRAS: Extra[] = [
+  { id: 'extra-doble-cheddar', name: 'Doble Cheddar', price: 1500 },
+  { id: 'extra-doble-bacon', name: 'Doble Bacon', price: 1500 },
+  { id: 'extra-medallon', name: 'Medallón Extra 120g', price: 3000 },
+  { id: 'extra-cheddar-papas', name: 'Cheddar en Papas', price: 2000 },
+  { id: 'extra-bacon-papas', name: 'Bacon en Papas', price: 2000 },
+  { id: 'extra-cheddar-bacon-papas', name: 'Cheddar y Bacon en Papas', price: 3000 },
+];
 
 interface AdminPanelProps {
   products: Product[];
@@ -22,6 +32,8 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ products, onClose, onSave }) =>
   const [newCategoryName, setNewCategoryName] = useState('');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [customCategories, setCustomCategories] = useState<Set<string>>(new Set());
+  const [expandedExtrasIndex, setExpandedExtrasIndex] = useState<number | null>(null);
+  const [editingExtraIndex, setEditingExtraIndex] = useState<{ productIdx: number; extraIdx: number } | null>(null);
 
   // Sincronizar editedProducts cuando cambian los products del padre
   React.useEffect(() => {
@@ -113,6 +125,61 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ products, onClose, onSave }) =>
       console.error('Error al subir imagen:', error);
       alert('❌ Error al procesar la imagen:\n\n' + (error instanceof Error ? error.message : 'Error desconocido'));
     }
+  };
+
+  // Funciones para manejar extras
+  const toggleExtraForProduct = (productIdx: number, extra: Extra) => {
+    const product = editedProducts[productIdx];
+    const existingExtra = product.extras?.find(e => e.id === extra.id);
+    
+    const updated = [...editedProducts];
+    if (!updated[productIdx].extras) {
+      updated[productIdx].extras = [];
+    }
+    
+    if (existingExtra) {
+      updated[productIdx].extras = updated[productIdx].extras!.filter(e => e.id !== extra.id);
+    } else {
+      updated[productIdx].extras = [...updated[productIdx].extras!, { ...extra }];
+    }
+    
+    setEditedProducts(updated);
+  };
+
+  const updateExtraPrice = (productIdx: number, extraId: string, newPrice: number) => {
+    const updated = [...editedProducts];
+    const extra = updated[productIdx].extras?.find(e => e.id === extraId);
+    if (extra) {
+      extra.price = newPrice;
+      setEditedProducts(updated);
+    }
+  };
+
+  const removeExtraFromProduct = (productIdx: number, extraId: string) => {
+    const updated = [...editedProducts];
+    updated[productIdx].extras = updated[productIdx].extras?.filter(e => e.id !== extraId) || [];
+    setEditedProducts(updated);
+  };
+
+  const addNewExtraToProduct = (productIdx: number, name: string, price: number) => {
+    if (!name.trim() || price <= 0) {
+      alert('⚠️ Completa el nombre y precio del extra');
+      return;
+    }
+    
+    const updated = [...editedProducts];
+    if (!updated[productIdx].extras) {
+      updated[productIdx].extras = [];
+    }
+    
+    const newExtra: Extra = {
+      id: `extra-${Date.now()}`,
+      name: name.trim(),
+      price: price
+    };
+    
+    updated[productIdx].extras.push(newExtra);
+    setEditedProducts(updated);
   };
 
   const handleDrag = (e: React.DragEvent) => {
@@ -750,6 +817,131 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ products, onClose, onSave }) =>
                                       className="w-full bg-neutral-600/50 border border-yellow-400/20 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-yellow-400/50 transition"
                                     />
                                   </div>
+                                </div>
+
+                                {/* ===== SECCIÓN DE GESTIÓN DE EXTRAS ===== */}
+                                <div className="bg-gradient-to-br from-orange-900/40 to-orange-800/20 border-2 border-orange-500/40 rounded-xl p-6 space-y-4">
+                                  <button
+                                    onClick={() => setExpandedExtrasIndex(expandedExtrasIndex === index ? null : index)}
+                                    className="w-full flex items-center justify-between pb-3 border-b border-orange-400/30 hover:opacity-80 transition"
+                                  >
+                                    <div className="flex items-center gap-2">
+                                      <span className="text-2xl">🌶️</span>
+                                      <h3 className="text-orange-300 font-black text-sm uppercase tracking-widest">Gestionar Extras</h3>
+                                      {editedProducts[index].extras && editedProducts[index].extras.length > 0 && (
+                                        <span className="bg-orange-600 text-white px-2 py-1 rounded-full text-xs font-bold">{editedProducts[index].extras.length}</span>
+                                      )}
+                                    </div>
+                                    {expandedExtrasIndex === index ? <ChevronUp size={20} className="text-orange-400" /> : <ChevronDown size={20} className="text-orange-400" />}
+                                  </button>
+
+                                  {expandedExtrasIndex === index && (
+                                    <div className="space-y-4 pt-2">
+                                      {/* Extras disponibles para agregar */}
+                                      <div className="space-y-2">
+                                        <p className="text-orange-200 font-bold text-xs uppercase tracking-wider">📋 Extras disponibles:</p>
+                                        <div className="grid grid-cols-1 gap-2 max-h-64 overflow-y-auto">
+                                          {AVAILABLE_EXTRAS.map(availableExtra => {
+                                            const isSelected = editedProducts[index].extras?.some(e => e.id === availableExtra.id);
+                                            return (
+                                              <button
+                                                key={availableExtra.id}
+                                                onClick={() => toggleExtraForProduct(index, availableExtra)}
+                                                className={`w-full p-3 rounded-lg border-2 transition flex items-center justify-between font-bold text-sm ${
+                                                  isSelected
+                                                    ? 'bg-orange-600/30 border-orange-400 text-orange-100'
+                                                    : 'bg-neutral-700/30 border-orange-400/30 text-neutral-300 hover:border-orange-400/60'
+                                                }`}
+                                              >
+                                                <span>{availableExtra.name}</span>
+                                                <span className="text-xs">${availableExtra.price.toLocaleString()}</span>
+                                              </button>
+                                            );
+                                          })}
+                                        </div>
+                                      </div>
+
+                                      {/* Extras seleccionados - edición de precios */}
+                                      {editedProducts[index].extras && editedProducts[index].extras.length > 0 && (
+                                        <div className="space-y-3 pt-4 border-t border-orange-400/30">
+                                          <p className="text-orange-200 font-bold text-xs uppercase tracking-wider">✅ Extras habilitados:</p>
+                                          <div className="space-y-2">
+                                            {editedProducts[index].extras.map((extra, extraIdx) => (
+                                              <div key={extra.id} className="flex gap-2 items-end bg-neutral-700/40 p-3 rounded-lg">
+                                                <div className="flex-1">
+                                                  <p className="text-neutral-400 text-xs mb-1">{extra.name}</p>
+                                                  <div className="flex gap-2">
+                                                    <div className="flex-1 relative">
+                                                      <span className="absolute left-2 top-2 text-orange-400 font-bold text-sm">$</span>
+                                                      <input
+                                                        type="text"
+                                                        value={extra.price.toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.')}
+                                                        onFocus={(e) => e.target.select()}
+                                                        onChange={(e) => {
+                                                          const numericValue = e.target.value.replace(/\./g, '');
+                                                          if (/^\d*$/.test(numericValue)) {
+                                                            updateExtraPrice(index, extra.id, parseInt(numericValue) || 0);
+                                                          }
+                                                        }}
+                                                        className="w-full bg-neutral-600/50 border border-orange-400/30 rounded-lg pl-7 pr-2 py-2 text-white font-bold text-sm focus:outline-none focus:border-orange-400 transition"
+                                                      />
+                                                    </div>
+                                                    <button
+                                                      onClick={() => removeExtraFromProduct(index, extra.id)}
+                                                      className="bg-red-600/20 border border-red-500/30 text-red-400 py-2 px-3 rounded-lg hover:bg-red-600/30 transition"
+                                                      title="Remover extra"
+                                                    >
+                                                      <Trash2 size={16} />
+                                                    </button>
+                                                  </div>
+                                                </div>
+                                              </div>
+                                            ))}
+                                          </div>
+                                        </div>
+                                      )}
+
+                                      {/* Agregar extra personalizado */}
+                                      <div className="pt-4 border-t border-orange-400/30">
+                                        <details className="cursor-pointer">
+                                          <summary className="text-orange-200 font-bold text-xs uppercase tracking-wider hover:text-orange-100 transition">+ Agregar extra personalizado</summary>
+                                          <div className="mt-3 p-3 bg-neutral-700/30 rounded-lg space-y-2">
+                                            <input
+                                              type="text"
+                                              id={`custom-extra-name-${index}`}
+                                              placeholder="Nombre del extra"
+                                              className="w-full bg-neutral-600/50 border border-orange-400/30 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-orange-400 transition"
+                                            />
+                                            <div className="flex gap-2">
+                                              <div className="flex-1 relative">
+                                                <span className="absolute left-2 top-2 text-orange-400 font-bold text-sm">$</span>
+                                                <input
+                                                  type="text"
+                                                  id={`custom-extra-price-${index}`}
+                                                  placeholder="0"
+                                                  className="w-full bg-neutral-600/50 border border-orange-400/30 rounded-lg pl-7 pr-3 py-2 text-white text-sm focus:outline-none focus:border-orange-400 transition"
+                                                />
+                                              </div>
+                                              <button
+                                                onClick={() => {
+                                                  const nameInput = document.getElementById(`custom-extra-name-${index}`) as HTMLInputElement;
+                                                  const priceInput = document.getElementById(`custom-extra-price-${index}`) as HTMLInputElement;
+                                                  if (nameInput && priceInput) {
+                                                    addNewExtraToProduct(index, nameInput.value, parseInt(priceInput.value) || 0);
+                                                    nameInput.value = '';
+                                                    priceInput.value = '';
+                                                  }
+                                                }}
+                                                className="bg-green-600/20 border border-green-500/30 text-green-400 py-2 px-4 rounded-lg hover:bg-green-600/30 transition font-bold text-sm"
+                                              >
+                                                <Plus size={16} />
+                                              </button>
+                                            </div>
+                                          </div>
+                                        </details>
+                                      </div>
+                                    </div>
+                                  )}
                                 </div>
 
                                 <div className="flex gap-2 pt-3 border-t border-neutral-700/50">
