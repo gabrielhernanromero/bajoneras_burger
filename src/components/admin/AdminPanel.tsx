@@ -206,7 +206,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ products, onClose, onSave }) =>
 
   const handleEditProduct = (index: number, field: keyof Product, value: any) => {
     const updated = [...editedProducts];
-    if (field === 'price') {
+    if (field === 'price' || field === 'burgersToSelect') {
       updated[index] = { ...updated[index], [field]: parseInt(value) || 0 };
     } else {
       updated[index] = { ...updated[index], [field]: value };

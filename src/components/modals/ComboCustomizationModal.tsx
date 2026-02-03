@@ -21,7 +21,7 @@ export const ComboCustomizationModal: React.FC<ComboCustomizationModalProps> = (
   initialBurgers = [],
   confirmLabel = 'AGREGAR AL CARRITO'
 }) => {
-  const burgersCount = (combo.id === 'combo-bajonero-compartir' || combo.name.toLowerCase().includes('compartir')) ? 2 : 1;
+  const burgersCount = (combo as any).burgersToSelect || ((combo.id === 'combo-bajonero-compartir' || combo.name.toLowerCase().includes('compartir')) ? 2 : 1);
   const availableBurgers = products
     .filter(p => p.category === 'Burgers')
     .map(burger => {
