@@ -36,9 +36,18 @@ export const CartModal: React.FC<CartModalProps> = ({
     const deliveryMethod = 'delivery';
 
     const handleSendOrder = () => {
+        // Limpiar el valor total (quitar $ y puntos, dejar float)
+        let totalLimpio = totalPrice;
+        if (typeof totalLimpio === 'string') {
+            totalLimpio = totalLimpio.replace(/[$.\s]/g, '').replace(',', '.');
+            totalLimpio = parseFloat(totalLimpio);
+        }
         // Disparar evento de compra de Meta Pixel
         if (typeof window !== 'undefined' && typeof window.fbq === 'function') {
-            window.fbq('track', 'Purchase', { value: totalPrice, currency: 'USD' });
+            window.fbq('track', 'Purchase', {
+                value: totalLimpio,
+                currency: 'ARS'
+            });
         }
         const message = WhatsAppService.generateOrderMessage(
             cart,
