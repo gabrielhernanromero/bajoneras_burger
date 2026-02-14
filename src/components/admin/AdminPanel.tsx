@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, Edit2, Save, Trash2, Plus, Eye, EyeOff, Upload, Grid, List, Package, LogOut } from 'lucide-react';
+import { X, Edit2, Save, Trash2, Plus, Eye, EyeOff, Upload, Grid, List, Package, LogOut, ChevronDown } from 'lucide-react';
 import { Product, Extra } from '../../types';
 import { PRODUCTS } from '../../constants';
 import { supabaseService } from '../../services';
@@ -23,6 +23,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ products, onClose, onSave }) =>
   const [newCategoryName, setNewCategoryName] = useState('');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [customCategories, setCustomCategories] = useState<Set<string>>(new Set());
+  const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set(['basicos']));
 
   const getFallbackExtrasByCategory = (category?: string) => {
     if (!category) return undefined;
@@ -291,6 +292,40 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ products, onClose, onSave }) =>
 
   const handleSave = () => {
     onSave(editedProducts);
+  };
+
+  const toggleSection = (sectionId: string) => {
+    const newSet = new Set(expandedSections);
+    if (newSet.has(sectionId)) {
+      newSet.delete(sectionId);
+    } else {
+      newSet.add(sectionId);
+    }
+    setExpandedSections(newSet);
+  };
+
+  const SectionHeader = ({ id, title, icon, count }: { id: string; title: string; icon: string; count?: number }) => {
+    const isExpanded = expandedSections.has(id);
+    return (
+      <button
+        onClick={() => toggleSection(id)}
+        className="w-full flex items-center justify-between py-3 px-4 bg-neutral-800/50 hover:bg-neutral-800 transition rounded-lg border border-neutral-700/50"
+      >
+        <div className="flex items-center gap-3">
+          <span className="text-xl">{icon}</span>
+          <h3 className="text-white font-bold text-sm uppercase tracking-wider">{title}</h3>
+          {count !== undefined && (
+            <span className="bg-yellow-400/20 text-yellow-400 px-2 py-1 rounded-full text-xs font-bold">
+              {count}
+            </span>
+          )}
+        </div>
+        <ChevronDown 
+          size={18} 
+          className={`text-neutral-400 transition-transform ${isExpanded ? 'rotate-180' : ''}`}
+        />
+      </button>
+    );
   };
 
   if (!isAuthenticated) {
@@ -640,295 +675,296 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ products, onClose, onSave }) =>
                             {editingIndex === index ? (
                               <div className="space-y-4">
                                 {/* Header del modo edición */}
-                                <div className="flex items-center gap-2 pb-3 border-b border-yellow-400/20">
-                                  <div className="w-8 h-8 bg-blue-500/10 rounded-lg flex items-center justify-center">
-                                    <Edit2 size={16} className="text-blue-400" />
-                                  </div>
-                                  <span className="text-blue-400 font-bold text-sm uppercase tracking-wider">Editando Producto</span>
+                                <div className="flex items-center gap-2 px-4 py-3 bg-blue-500/10 border-l-4 border-l-blue-400 rounded">
+                                  <Edit2 size={18} className="text-blue-400" />
+                                  <span className="text-blue-400 font-bold text-sm uppercase tracking-wider">
+                                    Editando: {editedProducts[index].name}
+                                  </span>
                                 </div>
 
-                                <div className="grid grid-cols-1 gap-4">
-                                  <div>
-                                    <label className="text-yellow-400 font-bold text-xs uppercase tracking-wider block mb-2">Nombre</label>
-                                    <input
-                                      type="text"
-                                      value={editedProducts[index].name}
-                                      onChange={(e) => handleEditProduct(index, 'name', e.target.value)}
-                                      className="w-full bg-neutral-700/50 border border-yellow-400/30 rounded-lg px-3 py-2.5 text-white font-medium focus:outline-none focus:border-yellow-400 transition"
-                                    />
-                                  </div>
+                                {/* SECCIÓN 1: DATOS BÁSICOS */}
+                                <div className="bg-neutral-900/50 border border-neutral-700/50 rounded-lg p-4 space-y-3">
+                                  <SectionHeader id="basicos" title="Datos Básicos" icon="📝" />
                                   
-                                  <div>
-                                    <label className="text-yellow-400 font-bold text-xs uppercase tracking-wider block mb-2">Precio</label>
-                                    <div className="relative">
-                                      <span className="absolute left-3 top-2.5 text-yellow-400 font-bold">$</span>
-                                      <input
-                                        type="text"
-                                        value={editedProducts[index].price.toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.')}
-                                        onFocus={(e) => e.target.select()}
-                                        onChange={(e) => {
-                                          const numericValue = e.target.value.replace(/\./g, '');
-                                          if (/^\d*$/.test(numericValue)) {
-                                            handleEditProduct(index, 'price', numericValue);
-                                          }
-                                        }}
-                                        className="w-full bg-neutral-700/50 border border-yellow-400/30 rounded-lg pl-7 pr-3 py-2.5 text-white font-bold focus:outline-none focus:border-yellow-400 transition"
-                                      />
+                                  {expandedSections.has('basicos') && (
+                                    <div className="space-y-3 pt-3">
+                                      <div>
+                                        <label className="text-yellow-400 font-bold text-xs uppercase tracking-wider block mb-2">Nombre</label>
+                                        <input
+                                          type="text"
+                                          value={editedProducts[index].name}
+                                          onChange={(e) => handleEditProduct(index, 'name', e.target.value)}
+                                          className="w-full bg-neutral-700/50 border border-yellow-400/30 rounded-lg px-3 py-2.5 text-white font-medium focus:outline-none focus:border-yellow-400 transition"
+                                        />
+                                      </div>
+                                      
+                                      <div>
+                                        <label className="text-yellow-400 font-bold text-xs uppercase tracking-wider block mb-2">Precio</label>
+                                        <div className="relative">
+                                          <span className="absolute left-3 top-2.5 text-yellow-400 font-bold">$</span>
+                                          <input
+                                            type="text"
+                                            value={editedProducts[index].price.toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.')}
+                                            onFocus={(e) => e.target.select()}
+                                            onChange={(e) => {
+                                              const numericValue = e.target.value.replace(/\./g, '');
+                                              if (/^\d*$/.test(numericValue)) {
+                                                handleEditProduct(index, 'price', numericValue);
+                                              }
+                                            }}
+                                            className="w-full bg-neutral-700/50 border border-yellow-400/30 rounded-lg pl-7 pr-3 py-2.5 text-white font-bold focus:outline-none focus:border-yellow-400 transition"
+                                          />
+                                        </div>
+                                      </div>
+
+                                      <div>
+                                        <label className="text-yellow-400 font-bold text-xs uppercase tracking-wider block mb-2">Descripción</label>
+                                        <textarea
+                                          value={editedProducts[index].description}
+                                          onChange={(e) => handleEditProduct(index, 'description', e.target.value)}
+                                          className="w-full bg-neutral-700/50 border border-yellow-400/30 rounded-lg px-3 py-2.5 text-white font-medium focus:outline-none focus:border-yellow-400 transition resize-none"
+                                          rows={3}
+                                          placeholder="Escribe una descripción atractiva..."
+                                        />
+                                      </div>
                                     </div>
-                                  </div>
+                                  )}
                                 </div>
 
-                                <div>
-                                  <label className="text-yellow-400 font-bold text-xs uppercase tracking-wider block mb-2">Descripción</label>
-                                  <textarea
-                                    value={editedProducts[index].description}
-                                    onChange={(e) => handleEditProduct(index, 'description', e.target.value)}
-                                    className="w-full bg-neutral-700/50 border border-yellow-400/30 rounded-lg px-3 py-2.5 text-white font-medium focus:outline-none focus:border-yellow-400 transition resize-none"
-                                    rows={3}
+                                {/* SECCIÓN 2: IMAGEN */}
+                                <div className="bg-neutral-900/50 border border-neutral-700/50 rounded-lg p-4 space-y-3">
+                                  <SectionHeader id="imagen" title="Imagen" icon="🖼️" />
+                                  
+                                  {expandedSections.has('imagen') && (
+                                    <div className="space-y-3 pt-3">
+                                      <div
+                                        onDragEnter={handleDrag}
+                                        onDragLeave={handleDrag}
+                                        onDragOver={handleDrag}
+                                        onDrop={(e) => handleDrop(e, index)}
+                                        className={`relative border-2 border-dashed rounded-xl p-6 text-center transition ${
+                                          dragActive
+                                            ? 'border-yellow-400 bg-yellow-400/10'
+                                            : 'border-yellow-400/30 bg-neutral-700/20 hover:border-yellow-400/60 hover:bg-neutral-700/30'
+                                        }`}
+                                      >
+                                        <input
+                                          type="file"
+                                          accept="image/*"
+                                          onChange={(e) => {
+                                            if (e.target.files?.[0]) {
+                                              handleImageFile(e.target.files[0], index);
+                                            }
+                                          }}
+                                          className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                                        />
+                                        <div className="pointer-events-none">
+                                          <Upload size={24} className="text-yellow-400 mx-auto mb-2" />
+                                          <p className="text-yellow-400 font-bold mb-1 text-sm">Arrastra una imagen o haz clic</p>
+                                          <p className="text-neutral-400 text-xs">PNG, JPG, WEBP (Max 5MB)</p>
+                                        </div>
+                                      </div>
+                                      
+                                      {editedProducts[index].image && editedProducts[index].image.startsWith('data:') && (
+                                        <div>
+                                          <p className="text-neutral-400 text-xs mb-2 font-bold">Vista previa:</p>
+                                          <img
+                                            src={editedProducts[index].image}
+                                            alt="Preview"
+                                            className="w-full h-32 object-cover rounded-lg border border-yellow-400/30"
+                                          />
+                                        </div>
+                                      )}
+
+                                      <div>
+                                        <p className="text-neutral-400 text-xs mb-1.5 font-bold">O pega una URL:</p>
+                                        <input
+                                          type="text"
+                                          value={editedProducts[index].image.startsWith('data:') ? '' : editedProducts[index].image}
+                                          placeholder="https://ejemplo.com/imagen.jpg"
+                                          onChange={(e) => handleEditProduct(index, 'image', e.target.value)}
+                                          className="w-full bg-neutral-600/50 border border-yellow-400/20 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-yellow-400/50 transition"
+                                        />
+                                      </div>
+                                    </div>
+                                  )}
+                                </div>
+
+                                {/* SECCIÓN 3: EXTRAS */}
+                                <div className="bg-neutral-900/50 border border-neutral-700/50 rounded-lg p-4 space-y-3">
+                                  <SectionHeader 
+                                    id="extras" 
+                                    title="Extras" 
+                                    icon="🌶️"
+                                    count={editedProducts[index].extras?.length || 0}
                                   />
+                                  
+                                  {expandedSections.has('extras') && (
+                                    <div className="space-y-3 pt-3">
+                                      <div className="space-y-2">
+                                        {(editedProducts[index].extras && editedProducts[index].extras.length > 0) ? (
+                                          editedProducts[index].extras!.map((extra) => (
+                                            <div key={extra.id} className="bg-neutral-700/40 p-3 rounded-lg space-y-2">
+                                              <div className="flex gap-2 items-center">
+                                                <input
+                                                  type="text"
+                                                  value={extra.name}
+                                                  onChange={(e) => updateExtraField(index, extra.id, 'name', e.target.value)}
+                                                  placeholder="Nombre del extra"
+                                                  className="flex-1 bg-neutral-600/50 border border-orange-400/30 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-orange-400 transition"
+                                                />
+
+                                                <button
+                                                  type="button"
+                                                  onClick={() => removeExtraFromProduct(index, extra.id)}
+                                                  className="bg-red-600/20 border border-red-500/30 text-red-400 py-2 px-3 rounded-lg hover:bg-red-600/30 transition"
+                                                  title="Eliminar extra"
+                                                >
+                                                  <Trash2 size={18} />
+                                                </button>
+                                              </div>
+
+                                              <div className="relative">
+                                                <span className="absolute left-3 top-2.5 text-orange-400 font-bold">$</span>
+                                                <input
+                                                  type="text"
+                                                  value={extra.price ? Number(extra.price).toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.') : '0'}
+                                                  onFocus={(e) => e.target.select()}
+                                                  onChange={(e) => {
+                                                    const numericValue = e.target.value.replace(/\./g, '');
+                                                    if (/^\d*$/.test(numericValue)) {
+                                                      updateExtraField(index, extra.id, 'price', parseInt(numericValue) || 0);
+                                                    }
+                                                  }}
+                                                  placeholder="0"
+                                                  className="w-full bg-neutral-600/50 border border-orange-400/30 rounded-lg pl-8 pr-3 py-2 text-white font-bold focus:outline-none focus:border-orange-400 transition"
+                                                />
+                                              </div>
+                                            </div>
+                                          ))
+                                        ) : (
+                                          <p className="text-neutral-500 text-sm italic text-center py-3">Sin extras agregados</p>
+                                        )}
+                                      </div>
+
+                                      <button
+                                        type="button"
+                                        onClick={() => addExtraToProduct(index)}
+                                        className="w-full bg-green-600/20 border border-green-500/30 text-green-400 py-3 rounded-lg hover:bg-green-600/30 transition font-bold flex items-center justify-center gap-2"
+                                      >
+                                        <Plus size={20} />
+                                        Agregar Extra
+                                      </button>
+                                    </div>
+                                  )}
                                 </div>
 
-                                {/* ===== SECCIÓN DE GESTIÓN DE EXTRAS ===== */}
-                                <div className="bg-gradient-to-br from-orange-900/40 to-orange-800/20 border-2 border-orange-500/40 rounded-xl p-6 space-y-4">
-                                  <div className="flex items-center gap-2 pb-3 border-b border-orange-400/30">
-                                    <span className="text-2xl">🌶️</span>
-                                    <h3 className="text-orange-300 font-black text-sm uppercase tracking-widest">Extras del Producto</h3>
-                                    {editedProducts[index].extras && editedProducts[index].extras.length > 0 && (
-                                      <span className="bg-orange-600 text-white px-2 py-1 rounded-full text-xs font-bold">{editedProducts[index].extras.length}</span>
-                                    )}
-                                  </div>
+                                {/* SECCIÓN 4: PROMOCIONES AVANZADAS */}
+                                <div className="bg-neutral-900/50 border border-neutral-700/50 rounded-lg p-4 space-y-3">
+                                  <SectionHeader id="promos" title="Promociones Avanzadas" icon="🎯" />
+                                  
+                                  {expandedSections.has('promos') && (
+                                    <div className="space-y-4 pt-3">
+                                      {/* Cantidad de Hamburguesas */}
+                                      <div className="space-y-2">
+                                        <label className="text-purple-200 font-bold text-xs uppercase tracking-wider block">
+                                          📊 ¿Cuántas hamburguesas puede elegir?
+                                        </label>
+                                        <div className="grid grid-cols-5 gap-2">
+                                          {[0, 1, 2, 3, 4].map((num) => (
+                                            <button
+                                              key={num}
+                                              onClick={() => handleEditProduct(index, 'burgersToSelect', num)}
+                                              className={`py-3 rounded-lg font-bold text-sm transition border-2 ${
+                                                (editedProducts[index].burgersToSelect || 0) === num
+                                                  ? 'bg-purple-600 border-purple-400 text-white shadow-lg shadow-purple-600/50'
+                                                  : 'bg-neutral-700/50 border-neutral-600 text-neutral-300 hover:border-purple-400/50'
+                                              }`}
+                                            >
+                                              {num === 0 ? 'No' : num}
+                                            </button>
+                                          ))}
+                                        </div>
+                                      </div>
 
-                                  <div className="space-y-2">
-                                    {(editedProducts[index].extras && editedProducts[index].extras.length > 0) ? (
-                                      editedProducts[index].extras!.map((extra) => (
-                                        <div key={extra.id} className="bg-neutral-700/40 p-3 rounded-lg space-y-2">
-                                          <div className="flex gap-2 items-center">
-                                            <input
-                                              type="text"
-                                              value={extra.name}
-                                              onChange={(e) => updateExtraField(index, extra.id, 'name', e.target.value)}
-                                              placeholder="Nombre del extra"
-                                              className="flex-1 bg-neutral-600/50 border border-orange-400/30 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-orange-400 transition"
-                                            />
+                                      {/* Tipo de Hamburguesas */}
+                                      {editedProducts[index].burgersToSelect && editedProducts[index].burgersToSelect > 1 && (
+                                        <div className="space-y-2 pt-3 border-t border-purple-400/30">
+                                          <label className="text-purple-200 font-bold text-xs uppercase tracking-wider block">
+                                            🔄 Tipo de hamburguesas permitidas
+                                          </label>
+                                          <div className="grid grid-cols-2 gap-3">
+                                            <button
+                                              onClick={() => handleEditProduct(index, 'allowDuplicateBurgers', true)}
+                                              className={`py-3 px-3 rounded-lg font-bold text-xs uppercase transition border-2 text-center ${
+                                                editedProducts[index].allowDuplicateBurgers === true
+                                                  ? 'bg-green-600/80 border-green-400 text-white shadow-lg shadow-green-600/40'
+                                                  : 'bg-neutral-700/50 border-neutral-600 text-neutral-300 hover:border-green-400/50'
+                                              }`}
+                                            >
+                                              <div className="text-lg mb-1">✅</div>
+                                              <div>Iguales o Diferentes</div>
+                                            </button>
 
                                             <button
-                                              type="button"
-                                              onClick={() => removeExtraFromProduct(index, extra.id)}
-                                              className="bg-red-600/20 border border-red-500/30 text-red-400 py-2 px-3 rounded-lg hover:bg-red-600/30 transition"
-                                              title="Eliminar extra"
+                                              onClick={() => handleEditProduct(index, 'allowDuplicateBurgers', false)}
+                                              className={`py-3 px-3 rounded-lg font-bold text-xs uppercase transition border-2 text-center ${
+                                                editedProducts[index].allowDuplicateBurgers === false
+                                                  ? 'bg-blue-600/80 border-blue-400 text-white shadow-lg shadow-blue-600/40'
+                                                  : 'bg-neutral-700/50 border-neutral-600 text-neutral-300 hover:border-blue-400/50'
+                                              }`}
                                             >
-                                              <Trash2 size={18} />
+                                              <div className="text-lg mb-1">🚫</div>
+                                              <div>Solo Diferentes</div>
                                             </button>
                                           </div>
+                                        </div>
+                                      )}
 
-                                          <div className="relative">
-                                            <span className="absolute left-3 top-2.5 text-orange-400 font-bold">$</span>
-                                            <input
-                                              type="text"
-                                              value={extra.price ? Number(extra.price).toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.') : '0'}
-                                              onFocus={(e) => e.target.select()}
-                                              onChange={(e) => {
-                                                const numericValue = e.target.value.replace(/\./g, '');
-                                                if (/^\d*$/.test(numericValue)) {
-                                                  updateExtraField(index, extra.id, 'price', parseInt(numericValue) || 0);
-                                                }
-                                              }}
-                                              placeholder="0"
-                                              className="w-full bg-neutral-600/50 border border-orange-400/30 rounded-lg pl-8 pr-3 py-2 text-white font-bold focus:outline-none focus:border-orange-400 transition"
-                                            />
+                                      {/* Selección de Hamburguesas */}
+                                      {editedProducts[index].burgersToSelect && editedProducts[index].burgersToSelect > 0 && (
+                                        <div className="space-y-3 pt-3 border-t border-purple-400/30">
+                                          <label className="text-purple-200 font-bold text-xs uppercase tracking-wider block">
+                                            🍔 Hamburguesas disponibles
+                                          </label>
+                                          <div className="grid grid-cols-1 gap-2 max-h-48 overflow-y-auto">
+                                            {editedProducts
+                                              .filter(p => p.category === 'Burgers')
+                                              .map(burger => {
+                                                const isSelected = (editedProducts[index].allowedBurgers || []).includes(burger.id);
+                                                return (
+                                                  <button
+                                                    key={burger.id}
+                                                    onClick={() => {
+                                                      const currentAllowed = editedProducts[index].allowedBurgers || [];
+                                                      const newAllowed = isSelected
+                                                        ? currentAllowed.filter(id => id !== burger.id)
+                                                        : [...currentAllowed, burger.id];
+                                                      handleEditProduct(index, 'allowedBurgers', newAllowed);
+                                                    }}
+                                                    className={`p-3 rounded-lg border-2 transition-all text-left flex items-center gap-3 text-sm ${
+                                                      isSelected
+                                                        ? 'bg-green-600/80 border-green-400 text-white shadow-lg'
+                                                        : 'bg-neutral-700/50 border-neutral-600 text-neutral-300 hover:border-green-400/50'
+                                                    }`}
+                                                  >
+                                                    <div className={`w-5 h-5 rounded border-2 flex items-center justify-center flex-shrink-0 ${
+                                                      isSelected ? 'bg-white border-white' : 'border-neutral-400'
+                                                    }`}>
+                                                      {isSelected && <span className="text-green-600">✓</span>}
+                                                    </div>
+                                                    <span className="font-bold">{burger.name}</span>
+                                                  </button>
+                                                );
+                                              })}
                                           </div>
-                                        </div>
-                                      ))
-                                    ) : (
-                                      <p className="text-neutral-500 text-sm italic text-center py-3">Sin extras agregados</p>
-                                    )}
-                                  </div>
-
-                                  <button
-                                    type="button"
-                                    onClick={() => addExtraToProduct(index)}
-                                    className="w-full bg-green-600/20 border border-green-500/30 text-green-400 py-3 rounded-lg hover:bg-green-600/30 transition font-bold flex items-center justify-center gap-2"
-                                  >
-                                    <Plus size={20} />
-                                    Agregar Extra
-                                  </button>
-                                </div>
-
-                                {/* ===== SECCIÓN DE CONFIGURACIÓN AVANZADA DE PROMOS ===== */}
-                                <div className="bg-gradient-to-br from-purple-900/40 to-purple-800/20 border-2 border-purple-500/40 rounded-xl p-6 space-y-6">
-                                  <div className="flex items-center gap-2 pb-3 border-b border-purple-400/30">
-                                    <span className="text-2xl">🎯</span>
-                                    <h3 className="text-purple-300 font-black text-sm uppercase tracking-widest">Configurar Promoción Avanzada</h3>
-                                  </div>
-
-                                  {/* FILA 1: Cantidad de Hamburguesas */}
-                                  <div className="space-y-2">
-                                    <label className="text-purple-200 font-bold text-xs uppercase tracking-wider block">
-                                      📊 ¿Cuántas hamburguesas puede elegir el cliente?
-                                    </label>
-                                    <div className="grid grid-cols-5 gap-2">
-                                      {[0, 1, 2, 3, 4].map((num) => (
-                                        <button
-                                          key={num}
-                                          onClick={() => handleEditProduct(index, 'burgersToSelect', num)}
-                                          className={`py-3 rounded-lg font-bold text-sm transition border-2 ${
-                                            (editedProducts[index].burgersToSelect || 0) === num
-                                              ? 'bg-purple-600 border-purple-400 text-white shadow-lg shadow-purple-600/50'
-                                              : 'bg-neutral-700/50 border-neutral-600 text-neutral-300 hover:border-purple-400/50'
-                                          }`}
-                                        >
-                                          {num === 0 ? 'No' : num}
-                                        </button>
-                                      ))}
-                                    </div>
-                                    {editedProducts[index].burgersToSelect && editedProducts[index].burgersToSelect > 0 && (
-                                      <div className="mt-2 bg-purple-600/20 border border-purple-400/30 rounded-lg px-3 py-2">
-                                        <p className="text-purple-200 text-xs font-semibold">
-                                          ✨ El cliente elegirá <span className="font-black text-purple-300">{editedProducts[index].burgersToSelect}</span> hamburguesa{editedProducts[index].burgersToSelect > 1 ? 's' : ''}
-                                        </p>
-                                      </div>
-                                    )}
-                                  </div>
-
-                                  {/* FILA 2: Tipo de Hamburguesas */}
-                                  {editedProducts[index].burgersToSelect && editedProducts[index].burgersToSelect > 1 && (
-                                    <>
-                                      <div className="space-y-2 pt-3 border-t border-purple-400/30">
-                                        <label className="text-purple-200 font-bold text-xs uppercase tracking-wider block">
-                                          🔄 Tipo de hamburguesas permitidas
-                                        </label>
-                                        <div className="grid grid-cols-2 gap-3">
-                                          <button
-                                            onClick={() => handleEditProduct(index, 'allowDuplicateBurgers', true)}
-                                            className={`py-3 px-3 rounded-lg font-bold text-xs uppercase transition border-2 text-center ${
-                                              editedProducts[index].allowDuplicateBurgers === true
-                                                ? 'bg-green-600/80 border-green-400 text-white shadow-lg shadow-green-600/40'
-                                                : 'bg-neutral-700/50 border-neutral-600 text-neutral-300 hover:border-green-400/50'
-                                            }`}
-                                          >
-                                            <div className="text-lg mb-1">✅</div>
-                                            <div>Iguales o Diferentes</div>
-                                            <div className="text-xs opacity-75 mt-0.5">(2x Doble Bacon OK)</div>
-                                          </button>
-
-                                          <button
-                                            onClick={() => handleEditProduct(index, 'allowDuplicateBurgers', false)}
-                                            className={`py-3 px-3 rounded-lg font-bold text-xs uppercase transition border-2 text-center ${
-                                              editedProducts[index].allowDuplicateBurgers === false
-                                                ? 'bg-blue-600/80 border-blue-400 text-white shadow-lg shadow-blue-600/40'
-                                                : 'bg-neutral-700/50 border-neutral-600 text-neutral-300 hover:border-blue-400/50'
-                                            }`}
-                                          >
-                                            <div className="text-lg mb-1">🚫</div>
-                                            <div>Solo Diferentes</div>
-                                            <div className="text-xs opacity-75 mt-0.5">(Doble Bacon + Super Mell)</div>
-                                          </button>
-                                        </div>
-                                      </div>
-                                    </>
-                                  )}
-
-                                  {/* FILA 3: Selección de Hamburguesas Permitidas */}
-                                  {editedProducts[index].burgersToSelect && editedProducts[index].burgersToSelect > 0 && (
-                                    <div className="space-y-3 pt-3 border-t border-purple-400/30">
-                                      <label className="text-purple-200 font-bold text-xs uppercase tracking-wider block">
-                                        🍔 ¿Qué hamburguesas puede elegir el cliente?
-                                      </label>
-                                      <div className="grid grid-cols-1 gap-2 max-h-60 overflow-y-auto">
-                                        {editedProducts
-                                          .filter(p => p.category === 'Burgers')
-                                          .map(burger => {
-                                            const isSelected = (editedProducts[index].allowedBurgers || []).includes(burger.id);
-                                            return (
-                                              <button
-                                                key={burger.id}
-                                                onClick={() => {
-                                                  const currentAllowed = editedProducts[index].allowedBurgers || [];
-                                                  const newAllowed = isSelected
-                                                    ? currentAllowed.filter(id => id !== burger.id)
-                                                    : [...currentAllowed, burger.id];
-                                                  handleEditProduct(index, 'allowedBurgers', newAllowed);
-                                                }}
-                                                className={`p-3 rounded-lg border-2 transition-all text-left flex items-center gap-3 ${
-                                                  isSelected
-                                                    ? 'bg-green-600/80 border-green-400 text-white shadow-lg'
-                                                    : 'bg-neutral-700/50 border-neutral-600 text-neutral-300 hover:border-green-400/50'
-                                                }`}
-                                              >
-                                                <div className={`w-5 h-5 rounded border-2 flex items-center justify-center ${
-                                                  isSelected ? 'bg-white border-white' : 'border-neutral-400'
-                                                }`}>
-                                                  {isSelected && <span className="text-green-600 text-sm">✓</span>}
-                                                </div>
-                                                <span className="font-bold text-sm">{burger.name}</span>
-                                              </button>
-                                            );
-                                          })}
-                                      </div>
-                                      {editedProducts[index].allowedBurgers && editedProducts[index].allowedBurgers.length > 0 && (
-                                        <div className="mt-2 bg-green-600/20 border border-green-400/30 rounded-lg px-3 py-2">
-                                          <p className="text-green-200 text-xs font-semibold">
-                                            ✅ {editedProducts[index].allowedBurgers.length} hamburguesa{editedProducts[index].allowedBurgers.length > 1 ? 's' : ''} seleccionada{editedProducts[index].allowedBurgers.length > 1 ? 's' : ''}
-                                          </p>
                                         </div>
                                       )}
                                     </div>
                                   )}
                                 </div>
 
-                                <div>
-                                  <label className="text-yellow-400 font-bold text-xs uppercase tracking-wider block mb-2">Imagen</label>
-                                  <div
-                                    onDragEnter={handleDrag}
-                                    onDragLeave={handleDrag}
-                                    onDragOver={handleDrag}
-                                    onDrop={(e) => handleDrop(e, index)}
-                                    className={`relative border-2 border-dashed rounded-xl p-6 text-center transition ${
-                                      dragActive
-                                        ? 'border-yellow-400 bg-yellow-400/10'
-                                        : 'border-yellow-400/30 bg-neutral-700/20 hover:border-yellow-400/60 hover:bg-neutral-700/30'
-                                    }`}
-                                  >
-                                    <input
-                                      type="file"
-                                      accept="image/*"
-                                      onChange={(e) => {
-                                        if (e.target.files?.[0]) {
-                                          handleImageFile(e.target.files[0], index);
-                                        }
-                                      }}
-                                      className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                                    />
-                                    <div className="pointer-events-none">
-                                      <Upload size={24} className="text-yellow-400 mx-auto mb-2" />
-                                      <p className="text-yellow-400 font-bold mb-1 text-sm">Arrastra una imagen o haz clic</p>
-                                      <p className="text-neutral-400 text-xs">PNG, JPG, WEBP (Max 5MB)</p>
-                                    </div>
-                                  </div>
-                                  
-                                  {editedProducts[index].image && editedProducts[index].image.startsWith('data:') && (
-                                    <div className="mt-3">
-                                      <p className="text-neutral-400 text-xs mb-2">Vista previa:</p>
-                                      <img
-                                        src={editedProducts[index].image}
-                                        alt="Preview"
-                                        className="w-full h-32 object-cover rounded-lg border border-yellow-400/30"
-                                      />
-                                    </div>
-                                  )}
-
-                                  <div className="mt-3">
-                                    <p className="text-neutral-400 text-xs mb-1.5">O pega una URL:</p>
-                                    <input
-                                      type="text"
-                                      value={editedProducts[index].image.startsWith('data:') ? '' : editedProducts[index].image}
-                                      placeholder="https://ejemplo.com/imagen.jpg"
-                                      onChange={(e) => handleEditProduct(index, 'image', e.target.value)}
-                                      className="w-full bg-neutral-600/50 border border-yellow-400/20 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-yellow-400/50 transition"
-                                    />
-                                  </div>
-                                </div>
-
+                                {/* BOTONES DE ACCIÓN */}
                                 <div className="flex gap-2 pt-3 border-t border-neutral-700/50">
                                   <button
                                     onClick={async () => {

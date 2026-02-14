@@ -12,11 +12,11 @@ interface ProductCardProps {
 export const ProductCard: React.FC<ProductCardProps> = ({ product, onAdd, isAnimating }) => {
   return (
     <div className={`bg-neutral-900 rounded-[2.5rem] sm:rounded-[3.5rem] overflow-hidden group hover:shadow-[0_40px_100px_rgba(0,0,0,0.95)] transition-all duration-700 flex flex-col border border-white/5 hover:border-yellow-400/30 min-h-[650px] sm:min-h-[800px] ${isAnimating ? 'animate-pop shadow-[0_0_60px_rgba(250,204,21,0.2)]' : ''}`}>
-      <div className="relative h-72 sm:h-[450px] overflow-hidden">
+      <div className="relative h-72 sm:h-[450px] overflow-hidden bg-neutral-800">
         <img 
           src={product.image} 
           alt={product.name} 
-          className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-[2s]" 
+          className="w-full h-full object-cover transition-transform duration-[2s]" 
           loading="lazy"
         />
         <div className="absolute inset-0 bg-gradient-to-t from-neutral-900 via-transparent to-transparent opacity-80 group-hover:opacity-60 transition-opacity"></div>
