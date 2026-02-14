@@ -424,7 +424,6 @@ export default function App() {
             console.log('App: Guardando productos actualizados:', updatedProducts);
             const success = await updateProducts(updatedProducts);
             if (success) {
-              setShowAdminPanel(false);
               alert('✅ Cambios guardados exitosamente!');
             } else {
               alert('⚠️ Error al guardar en la base de datos.\n\nVerifica la consola (F12) para más detalles.');
