@@ -36,6 +36,10 @@ export const CartModal: React.FC<CartModalProps> = ({
     const deliveryMethod = 'delivery';
 
     const handleSendOrder = () => {
+        // Disparar evento de compra de Meta Pixel
+        if (typeof window !== 'undefined' && typeof window.fbq === 'function') {
+            window.fbq('track', 'Purchase', { value: totalPrice, currency: 'USD' });
+        }
         const message = WhatsAppService.generateOrderMessage(
             cart,
             totalPrice,
@@ -45,7 +49,6 @@ export const CartModal: React.FC<CartModalProps> = ({
             customerName,
             betweenStreets
         );
-
         WhatsAppService.sendOrder(message);
         onClose();
     };
